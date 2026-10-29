@@ -1,0 +1,4 @@
+# Keep storage directory tracked
+*.db
+*.sqlite
+
