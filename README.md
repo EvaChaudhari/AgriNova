@@ -1,17 +1,17 @@
 # 🌾 Krishi Mitra — Production Backend Engine
 
 Krishi Mitra is an open-source, voice-first digital agriculture platform tailored for smallholder farmers in India.
-It enforces a **strict separation of concerns**: pure deterministic hydrological and meteorological hazard engines execute first; multimodal conversational AI (Gemini / Agri-SLM) serves strictly as an empathetic vernacular translation and conversational grounding layer.
+It enforces a **strict separation of concerns**: pure deterministic hydrological and meteorological hazard engines execute first; conversational AI (Gemini / Agri-SLM) serves strictly as an empathetic vernacular translation and conversational grounding layer.
 
 ---
 
 ## 🏛️ Architectural Blueprint & Principles
 
-1. **Separation of Physics and Conversation**: Deterministic agronomic engines (FAO-56 Penman-Monteith, Hazard State Machine, STAC/Phenological models) evaluate all physical variables and hard constraints prior to any conversational AI invocation. The AI translation layer cannot override physical or safety constraints.
+1. **Separation of Physics and Conversation**: Deterministic agronomic engines ([FAO-56 Penman-Monteith](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/engines/fao56_hydrology.py), [Hazard State Machine](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/engines/hazard_state.py), [STAC/Phenological models](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/engines/satellite_stac.py)) evaluate all physical variables and hard constraints prior to any conversational AI invocation. The AI translation layer cannot override physical or safety constraints.
 2. **Single-Tenant per Hardware Device**: Strictly one profile per physical device bound to `device_id` / hardware UUID. No multi-tenant SSO overhead.
 3. **Deterministic Regional Fallback Ingestion**: Ingests data through a 3-tier hierarchy (`Hardware Sensor` -> `Public Government API` -> `Regionally Calibrated Baselines`), ensuring zero operational downtime even when government portals or IoT sensors are offline.
 
-```
+```text
 ┌────────────────────────────────────────────────────────┐
 │                   Unified Client                        │
 │       (Voice Audio, Leaf Photo, or Text Query)         │
@@ -45,46 +45,54 @@ It enforces a **strict separation of concerns**: pure deterministic hydrological
 ## 📂 Directory Layout
 
 ```text
-backend/
-├── alembic/                     # Database migrations
-│   ├── env.py
-│   └── versions/
-├── app/
-│   ├── main.py                  # FastAPI application entry point & CORS
-│   ├── core/
-│   │   ├── config.py            # Pydantic v2 application settings
-│   │   └── database.py          # PostGIS Geometry & SQLAlchemy session
-│   ├── models/                  # SQLAlchemy + GeoAlchemy2 PostGIS models
-│   │   ├── profile.py           # DeviceProfile (device_id hardware UUID)
-│   │   ├── plot.py              # FarmPlot (Polygon, centroid, area) & CropCycle
-│   │   ├── telemetry.py         # GroundwaterObservation & SoilHealthRecord
-│   │   └── chat.py              # ChatSession & ChatMessage
-│   ├── schemas/                 # Pydantic v2 schemas
-│   │   ├── bootstrap.py         # DeviceProfile & Bootstrap response schemas
-│   │   ├── geospatial.py        # GeoJSON Polygon, Plot & Telemetry schemas
-│   │   └── chat.py              # Chat receptor request & response schemas
-│   ├── engines/                 # Pure deterministic scientific engines
-│   │   ├── fao56_hydrology.py   # FAO-56 Penman-Monteith ET0, TAW, RAW, depletion
-│   │   ├── hazard_state.py      # Normal vs El Niño vs Storm/Flood state machine
-│   │   └── satellite_stac.py    # Sentinel-2 STAC NDVI/NDWI + synthetic fallback
-│   ├── services/
-│   │   ├── fallback_data.py     # CGWB groundwater, IMD normals, FAO-56 coefficients
-│   │   ├── weather_service.py   # IMD / OpenWeatherMap adapter + fallback
-│   │   ├── speech_service.py    # Bhashini ULCA / IndicWhisper STT & Indic-TTS
-│   │   ├── vision_service.py    # Leaf pathology validator (CIB IPM guidelines)
-│   │   └── context_builder.py   # Assembles live agricultural context packet
-│   └── api/v1/
-│       ├── bootstrap.py         # GET /api/v1/bootstrap & farmer onboarding
-│       ├── plots.py             # Field polygon registration & PostGIS CRUD
-│       └── chat_receptor.py     # Unified Voice / Vision / Text chat receptor
-├── tests/
-│   ├── conftest.py              # Pytest fixtures and test database setup
-│   ├── test_fao56.py            # FAO-56 Penman-Monteith & water balance tests
-│   ├── test_hazard_state.py     # Hazard state machine & directive tests
-│   ├── test_chat_receptor.py    # Conversational memory & override tests
-│   ├── test_plots_api.py        # Field polygon & PostGIS CRUD tests
-│   └── test_services.py         # Vision, weather, speech, and satellite tests
-└── requirements.txt
+.
+├── backend/
+│   ├── alembic/                         # Database migrations
+│   │   ├── env.py                       # Alembic environment with Base.metadata
+│   │   ├── script.py.mako               # Migration template
+│   │   └── versions/                    # Autogenerated migration versions
+│   │       └── f49b0e3b4438_initial_krishi_mitra_schema.py
+│   ├── alembic.ini                      # Alembic migration configuration
+│   ├── app/
+│   │   ├── main.py                      # FastAPI application entry point, CORS & lifespan
+│   │   ├── core/
+│   │   │   ├── config.py                # Pydantic v2 application settings & environment
+│   │   │   └── database.py              # Dual-dialect PostGIS Geometry & SQLAlchemy session
+│   │   ├── models/                      # SQLAlchemy + GeoAlchemy2 PostGIS models
+│   │   │   ├── profile.py               # DeviceProfile (device_id hardware UUID)
+│   │   │   ├── plot.py                  # FarmPlot (Polygon, centroid, area) & CropCycle
+│   │   │   ├── telemetry.py             # GroundwaterObservation & SoilHealthRecord
+│   │   │   └── chat.py                  # ChatSession & ChatMessage
+│   │   ├── schemas/                     # Pydantic v2 schemas
+│   │   │   ├── bootstrap.py             # DeviceProfile & Bootstrap response schemas
+│   │   │   ├── geospatial.py            # GeoJSON Polygon, Plot & Telemetry schemas
+│   │   │   └── chat.py                  # Chat receptor request & response schemas
+│   │   ├── engines/                     # Pure deterministic scientific engines
+│   │   │   ├── fao56_hydrology.py       # FAO-56 Penman-Monteith ET0, TAW, RAW, depletion
+│   │   │   ├── hazard_state.py          # Extreme weather hazard finite state machine
+│   │   │   └── satellite_stac.py        # Sentinel-2 STAC NDVI/NDWI + synthetic fallback
+│   │   ├── services/
+│   │   │   ├── fallback_data.py         # CGWB groundwater, IMD normals, FAO-56 coefficients
+│   │   │   ├── weather_service.py       # IMD / OpenWeatherMap adapter + fallback
+│   │   │   ├── speech_service.py        # Bhashini ULCA / IndicWhisper STT & Indic-TTS
+│   │   │   ├── vision_service.py        # Leaf pathology validator (CIB IPM guidelines)
+│   │   │   └── context_builder.py       # Assembles live agricultural context packet
+│   │   └── api/v1/
+│   │       ├── bootstrap.py             # GET /api/v1/bootstrap & farmer onboarding
+│   │       ├── plots.py                 # Field polygon registration & PostGIS CRUD
+│   │       └── chat_receptor.py         # Unified Voice / Vision / Text chat receptor
+│   ├── tests/
+│   │   ├── conftest.py                  # Pytest fixtures and transactional test DB
+│   │   ├── test_fao56.py                # FAO-56 Penman-Monteith & water balance tests
+│   │   ├── test_hazard_state.py         # Hazard state machine & directive tests
+│   │   ├── test_chat_receptor.py        # Conversational memory & override tests
+│   │   ├── test_plots_api.py            # Field polygon & PostGIS CRUD tests
+│   │   └── test_services.py             # Vision, weather, speech, and satellite tests
+│   ├── .env.example                     # Environment template
+│   └── requirements.txt                 # Pinned Python dependencies
+└── storage/                             # Local database & audio/media persistence
+    ├── .gitignore
+    └── krishi_mitra.db
 ```
 
 ---
@@ -93,8 +101,11 @@ backend/
 
 ### 1. Environment Setup
 ```bash
+# Create and activate virtual environment
 python3.12 -m venv .venv
 source .venv/bin/activate
+
+# Install dependencies
 pip install -r backend/requirements.txt
 ```
 
@@ -102,10 +113,16 @@ pip install -r backend/requirements.txt
 ```bash
 cd backend
 alembic upgrade head
+cd ..
 ```
 
 ### 3. Run the Backend Server
 ```bash
+# From repository root:
+PYTHONPATH=backend uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Or from backend directory:
+cd backend
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 Interactive OpenAPI documentation will be accessible at: `http://localhost:8000/docs`.
@@ -119,44 +136,244 @@ PYTHONPATH=backend pytest -v
 
 ## 🔬 Core Scientific Engines
 
-### 1. FAO-56 Hydrological Engine (`fao56_hydrology.py`)
+### 1. FAO-56 Hydrological Engine ([`fao56_hydrology.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/engines/fao56_hydrology.py))
 Computes reference evapotranspiration ($ET_0$) using the FAO-56 Penman-Monteith equation:
 $$ET_0 = \frac{0.408 \Delta (R_n - G) + \gamma \frac{900}{T_{\text{mean}} + 273} u_2 (e_s - e_a)}{\Delta + \gamma (1 + 0.34 u_2)}$$
 Tracks daily root zone depletion:
 $$D_t = D_{t-1} + ET_c - P_{\text{eff}} - GW_{\text{capillary}}$$
-Triggers:
-- `IRRIGATE`: when $D_t \ge RAW$ ($RAW = p \times TAW$).
-- `DRAIN`: when soil is oversaturated from storm rainfall.
+Categorical triggers:
+- `IRRIGATE`: when $D_t \ge RAW$ ($RAW = p \times TAW$). Recommends exact irrigation depth in mm adjusted for irrigation efficiency (Drip: 90%, Sprinkler: 75%, Flood: 60%).
+- `DRAIN`: when soil is oversaturated from storm rainfall ($>50\text{ mm}$ on heavy clay) to prevent root rot.
 - `HOLD`: when root depletion is within safe buffering capacity.
 
-### 2. Extreme Weather Hazard Engine (`hazard_state.py`)
+### 2. Extreme Weather Hazard Engine ([`hazard_state.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/engines/hazard_state.py))
 Deterministic finite state machine with strict priority rules:
-- **`STORM_FLOOD_MODE`** (24h rain $\ge 50\text{ mm}$ or waterlogged):
+- **`STORM_FLOOD_MODE`** (24h rain $\ge 50\text{ mm}$ OR waterlogging reported):
   - Enforces `HALT_ALL_CHEMICAL_SPRAYING`, `HALT_FERTILIZERS`, `CLEAR_DRAINAGE_FURROWS`.
-  - DEM slope $> 3\% \implies$ `HIGH_TOPSOIL_EROSION_RISK` alert.
-  - DEM slope $\le 3\% \implies$ `ROOT_ASPHYXIATION_RISK` alert.
-- **`EL_NINO_DROUGHT_MODE`** (Groundwater $> 18\text{ mbgl}$ & seasonal deficit $> 35\%$):
+  - DEM slope $> 3\% \implies$ `HIGH_TOPSOIL_EROSION_RISK` alert (contour bunding, stop tillage).
+  - DEM slope $\le 3\% \implies$ `ROOT_ASPHYXIATION_RISK` alert (dig drainage channels).
+- **`EL_NINO_DROUGHT_MODE`** (Groundwater $> 18\text{ mbgl}$ AND seasonal deficit $> 35\%$):
   - Enforces `FORBID_SURFACE_FLOOD_IRRIGATION`. Recommends night-time drip and straw mulching.
-  - Sub-mode `CRITICAL_WATER_STRESS`: Triggered when NDWI $< -0.20$.
+  - Sub-mode `CRITICAL_WATER_STRESS`: Triggered when NDWI $< -0.20$. Recommends emergency deficit irrigation and kaolin clay foliar spray.
 - **`NORMAL_MODE`**: Default operating envelope.
 
-### 3. Pest Leaf Vision Validator (`vision_service.py`)
-- Zero-hallucination policy adhering to Central Insecticides Board (CIB&RC) registrations.
-- Recommends non-chemical Integrated Pest Management (IPM) first: NSKE 5%, pheromone traps, trichoderma, bio-control.
-- Prescribes exact dilution rates (e.g. per 15L sprayer tank) and mandatory pre-harvest intervals (PHI).
+### 3. Pest Leaf Vision Validator ([`vision_service.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/services/vision_service.py))
+- Validates that the uploaded photo is a genuine crop leaf before diagnosing.
+- **Zero-Hallucination Policy**: Adheres strictly to Central Insecticides Board & Registration Committee (CIB&RC) registrations.
+- Recommends non-chemical Integrated Pest Management (IPM) first: 5% Neem Seed Kernel Extract (NSKE), pheromone traps, Trichogramma parasitoids, bio-control.
+- Prescribes exact dilution rates (e.g. per 15-litre knapsack sprayer tank) and mandatory pre-harvest intervals (PHI).
+
+### 4. Satellite STAC & Synthetic Phenology ([`satellite_stac.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/engines/satellite_stac.py))
+- Queries Sentinel-2 L2A STAC scenes (Bands 4, 8, 11 for NDVI and NDWI).
+- When offline or cloud cover $>30\%$, computes deterministic vegetation indices using a calibrated sigmoid phenological curve based on crop type and Days After Sowing (DAS).
 
 ---
 
-## 🌐 API Reference
+## 🌾 Regional Baseline Datasets & Ingestion Hierarchy
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/bootstrap?device_id=...` | Launch state sync, environmental layers & engine evaluation |
-| `POST` | `/api/v1/bootstrap/onboard` | Register/update farmer profile (one per device) |
-| `POST` | `/api/v1/plots` | Register polygon boundary with auto-centroid & area |
-| `GET` | `/api/v1/plots?device_id=...` | List farm plots for device |
-| `POST` | `/api/v1/plots/{id}/crop-cycle` | Register active crop cycle & growth stage |
-| `POST` | `/api/v1/plots/{id}/groundwater` | Log groundwater sensor / WRIS depth |
-| `POST` | `/api/v1/plots/{id}/soil-health` | Log Soil Health Card NPK, pH & OC |
-| `POST` | `/api/v1/chat/receptor` | Unified Voice/Vision/Text receptor with grounded advisory |
+Krishi Mitra integrates regionally calibrated hardcoded fallbacks ([`fallback_data.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/services/fallback_data.py)) so the engine operates seamlessly without external services:
 
+- **Central Ground Water Board (CGWB) Medians**:
+  - Telangana: Warangal (11.2 mbgl), Adilabad (9.8 mbgl), Nalgonda (14.5 mbgl), Mahabubnagar (19.4 mbgl).
+  - Maharashtra: Akola (12.6 mbgl), Wardha (10.5 mbgl), Ahmednagar (18.9 mbgl), Solapur (20.2 mbgl).
+  - Andhra Pradesh: Anantapur (22.4 mbgl), Guntur (7.5 mbgl).
+  - Karnataka: Belagavi (10.8 mbgl), Raichur (17.6 mbgl).
+  - North India: Karnal (16.5 mbgl), Ludhiana (21.0 mbgl), Indore (14.8 mbgl).
+- **IMD Agro-Climatic Normals**: Monthly historical distributions of $T_{\min}, T_{\max}, RH$, wind speed, solar radiation, and rainfall baseline.
+- **Soil Health Card Benchmarks**: Calibrated profiles for Vertisol (Black Cotton, pH 7.8), Alfisol (Red, pH 6.2), Inceptisol (Alluvial, pH 7.2), Sandy Loam, and Clay Loam.
+- **FAO-56 Crop Parameters**: Standard coefficients ($K_{c,\text{ini}}, K_{c,\text{mid}}, K_{c,\text{end}}$), rooting depths ($Z_{r,\min}, Z_{r,\max}$), and depletion fractions ($p$) for Cotton, Paddy/Rice, Maize, Soybean, Wheat, Groundnut, and Chana.
+
+---
+
+## 🌐 API Reference & Usage Examples
+
+### 1. Bootstrap Endpoint
+`GET /api/v1/bootstrap?device_id=DEV-12345`
+
+Returns full environmental layers, plot details, active crop cycle, and engine states in a single round-trip:
+```bash
+curl -X GET "http://localhost:8000/api/v1/bootstrap?device_id=TEST-HARDWARE-UUID-001"
+```
+```json
+{
+  "device_id": "TEST-HARDWARE-UUID-001",
+  "is_onboarded": true,
+  "message": "Device profile synchronized with live agro-climatic context.",
+  "profile": {
+    "farmer_name": "Rameshwar Patil",
+    "preferred_language": "hi",
+    "phone_number": "+919876543210",
+    "kisan_id": "PMK-123456"
+  },
+  "active_plot_id": 1,
+  "context": { ... },
+  "hazard_state": "NORMAL_MODE",
+  "enforced_restrictions": []
+}
+```
+
+### 2. Farmer Onboarding
+`POST /api/v1/bootstrap/onboard`
+```bash
+curl -X POST "http://localhost:8000/api/v1/bootstrap/onboard" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "device_id": "TEST-HARDWARE-UUID-001",
+    "farmer_name": "Rameshwar Patil",
+    "preferred_language": "hi",
+    "phone_number": "+919876543210",
+    "kisan_id": "PMK-123456"
+  }'
+```
+
+### 3. Field Polygon Registration
+`POST /api/v1/plots`
+
+Registers field boundary coordinates; automatically computes the centroid and geodesic surface area in hectares:
+```bash
+curl -X POST "http://localhost:8000/api/v1/plots" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "device_id": "TEST-HARDWARE-UUID-001",
+    "name": "North Cotton Field",
+    "survey_number": "45/2",
+    "khasra_number": "K-102",
+    "boundary": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [78.5000, 17.5000],
+          [78.50094, 17.5000],
+          [78.50094, 17.5009],
+          [78.5000, 17.5009],
+          [78.5000, 17.5000]
+        ]
+      ]
+    },
+    "soil_texture": "Vertisol",
+    "elevation_m": 250.0,
+    "slope_percent": 1.5
+  }'
+```
+
+### 4. Register Active Crop Cycle
+`POST /api/v1/plots/{plot_id}/crop-cycle`
+```bash
+curl -X POST "http://localhost:8000/api/v1/plots/1/crop-cycle" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "crop_name": "Cotton",
+    "variety": "Bt-Cotton",
+    "sowing_date": "2026-06-15",
+    "growth_stage": "FLOWERING",
+    "irrigation_method": "DRIP"
+  }'
+```
+
+### 5. Unified Voice / Vision / Text Chat Receptor
+`POST /api/v1/chat/receptor`
+
+Accepts either `application/json` or `multipart/form-data` (with voice audio and leaf photos):
+
+**JSON Text Request:**
+```bash
+curl -X POST "http://localhost:8000/api/v1/chat/receptor" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "device_id": "TEST-HARDWARE-UUID-001",
+    "session_id": "new",
+    "query_text": "मेरी कपास की फसल में आज पानी देना है या नहीं?",
+    "language": "hi"
+  }'
+```
+
+**Multipart Voice / Vision Request:**
+```bash
+curl -X POST "http://localhost:8000/api/v1/chat/receptor" \
+  -F "device_id=TEST-HARDWARE-UUID-001" \
+  -F "session_id=new" \
+  -F "language=hi" \
+  -F "audio_file=@farmer_voice.wav;type=audio/wav" \
+  -F "image_file=@affected_leaf.jpg;type=image/jpeg"
+```
+
+**Response:**
+```json
+{
+  "session_id": "4e723230-6ea7-4ce8-b59c-645621a63a58",
+  "reply_text": "किसान भाई, पत्ती की जांच में गुलाबी सुंडी (Pink Bollworm) के लक्षण मिले हैं। पहले 5% नीम तेल (NSKE) 50 मिली प्रति 15 लीटर टंकी में मिलाकर छिड़कें। मिट्टी में नमी संतुलित है, आज सिंचाई की आवश्यकता नहीं है।",
+  "audio_base64_url": "data:audio/wav;base64,UklGR...",
+  "hazard_state": "NORMAL_MODE",
+  "injected_context": {
+    "crop_name": "Cotton",
+    "growth_stage": "FLOWERING",
+    "hydrology": {
+      "trigger": "HOLD",
+      "recommended_depth_mm": 0.0
+    },
+    "hazard": {
+      "current_state": "NORMAL_MODE",
+      "enforced_restrictions": []
+    }
+  }
+}
+```
+
+---
+
+## 🗄️ Database Dialects (PostgreSQL + PostGIS vs SQLite)
+
+Krishi Mitra utilizes a custom SQLAlchemy TypeDecorator [`PostGISGeometry`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/core/database.py#L32):
+- **Production Mode (PostgreSQL + PostGIS)**: Maps natively to `GEOMETRY(Polygon, 4326)` with PostGIS spatial indexing.
+  Set in `backend/.env`:
+  ```bash
+  DATABASE_URL="postgresql://postgres:postgres@localhost:5432/krishi_mitra"
+  ```
+- **Local Testing Mode (SQLite)**: Automatically falls back to standard WKT and GeoJSON string storage, enabling local testing and CI/CD without requiring local PostGIS or SpatiaLite C-libraries.
+  Default in `backend/.env`:
+  ```bash
+  DATABASE_URL="sqlite:///./storage/krishi_mitra.db"
+  ```
+
+---
+
+## 🧪 Verification & Test Results
+
+The backend contains 23 comprehensive tests covering:
+- Penman-Monteith $ET_0$ against standard FAO-56 semi-arid benchmarks.
+- Extreme weather hazard state transitions and strict pesticide spraying halts under `STORM_FLOOD_MODE`.
+- Soil water balance depletion and `IRRIGATE`/`DRAIN`/`HOLD` categorical triggers.
+- Multi-turn conversational session history retention and memory resumption.
+- Field polygon geodesic area calculations in hectares.
+- Multimodal speech (STT/TTS) and leaf pathology vision validation.
+
+```bash
+PYTHONPATH=backend pytest -v
+```
+```text
+backend/tests/test_chat_receptor.py::test_chat_receptor_new_session_instantiation PASSED
+backend/tests/test_chat_receptor.py::test_chat_receptor_existing_session_history_appending PASSED
+backend/tests/test_chat_receptor.py::test_chat_receptor_multipart_voice_and_vision_handling PASSED
+backend/tests/test_chat_receptor.py::test_bootstrap_endpoint PASSED
+backend/tests/test_chat_receptor.py::test_chat_receptor_storm_flood_halt_spraying_override PASSED
+backend/tests/test_fao56.py::test_fao56_et0_standard_benchmark PASSED
+backend/tests/test_fao56.py::test_fao56_et0_temperature_and_radiation_response PASSED
+backend/tests/test_fao56.py::test_effective_rainfall_depletion PASSED
+backend/tests/test_fao56.py::test_capillary_rise PASSED
+backend/tests/test_fao56.py::test_water_balance_trigger_irrigate PASSED
+backend/tests/test_fao56.py::test_water_balance_trigger_hold PASSED
+backend/tests/test_fao56.py::test_water_balance_trigger_drain PASSED
+backend/tests/test_hazard_state.py::test_storm_flood_mode_transition_and_restrictions PASSED
+backend/tests/test_hazard_state.py::test_storm_flood_mode_slope_analysis PASSED
+backend/tests/test_hazard_state.py::test_el_nino_drought_mode_transition PASSED
+backend/tests/test_hazard_state.py::test_critical_water_stress_submode PASSED
+backend/tests/test_hazard_state.py::test_normal_operating_envelope PASSED
+backend/tests/test_plots_api.py::test_create_and_list_plots PASSED
+backend/tests/test_plots_api.py::test_register_crop_cycle_and_telemetry PASSED
+backend/tests/test_services.py::test_leaf_vision_validator PASSED
+backend/tests/test_services.py::test_weather_fallback PASSED
+backend/tests/test_services.py::test_synthetic_satellite_phenological_curve PASSED
+backend/tests/test_speech_pipeline PASSED
+
+======================== 23 passed in 0.40s =========================
+```
