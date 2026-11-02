@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.exceptions import ForbiddenActionError, UnauthorizedAccessError
+from app.core.rate_limiter import is_token_blacklisted
 from app.core.security import decode_access_token
 from app.models.auth import Device, User
 from app.models.consent import AuditLog
@@ -46,6 +47,8 @@ def get_current_identity(
     # 1. Primary path: JWT Bearer Token
     if auth_header and auth_header.strip().startswith("Bearer "):
         token = auth_header.strip()[7:].strip()
+        if is_token_blacklisted(token):
+            raise UnauthorizedAccessError("Token has been revoked. Please authenticate again.")
         payload = decode_access_token(token)
         sub = payload.get("sub")
         if not sub:

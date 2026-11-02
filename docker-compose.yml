@@ -1,0 +1,93 @@
+version: "3.9"
+
+services:
+  # --------------------------------------------------------------------------
+  # 1. Database: PostgreSQL 16 with PostGIS 3.4 Spatial Extensions
+  # --------------------------------------------------------------------------
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: agrinova-postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-agrinova_db}
+      POSTGRES_USER: ${POSTGRES_USER:-agrinova_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agrinova_secure_password_2026}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agrinova_user} -d ${POSTGRES_DB:-agrinova_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - agrinova-network
+
+  # --------------------------------------------------------------------------
+  # 2. In-Memory Cache & Broker: Redis 7
+  # --------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: agrinova-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - agrinova-network
+
+  # --------------------------------------------------------------------------
+  # 3. Application: AgriNova FastAPI Backend Engine
+  # --------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agrinova-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-agrinova_user}:${POSTGRES_PASSWORD:-agrinova_secure_password_2026}@db:5432/${POSTGRES_DB:-agrinova_db}
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change_in_production_jwt_secret_super_key_2026}
+      OPENWEATHERMAP_API_KEY: ${OPENWEATHERMAP_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      BHASHINI_API_KEY: ${BHASHINI_API_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - storage_data:/app/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - agrinova-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  storage_data:
+    driver: local
+
+networks:
+  agrinova-network:
+    driver: bridge
+

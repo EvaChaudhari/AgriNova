@@ -51,6 +51,7 @@ Below is the exhaustive catalog of every active route currently implemented in t
 | `POST` | `/api/v1/auth/register` | `register_farmer` | [`app/api/v1/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/auth.py#L38) | None | 201 Created |
 | `POST` | `/api/v1/auth/login-pin` | `login_with_pin` | [`app/api/v1/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/auth.py#L112) | None | 200 OK / 401 Unauthorized |
 | `POST` | `/api/v1/auth/device-session` | `establish_device_session` | [`app/api/v1/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/auth.py#L160) | None | 200 OK |
+| `POST` | `/api/v1/auth/logout` | `logout_user` | [`app/api/v1/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/auth.py#L235) | Bearer JWT | 200 OK / 401 Unauthorized |
 | `GET` | `/api/v1/auth/me` | `get_current_profile` | [`app/api/v1/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/auth.py#L205) | Bearer JWT or `X-Device-ID` | 200 OK / 401 Unauthorized |
 
 ---
@@ -321,37 +322,43 @@ Below is the exhaustive catalog of every active route currently implemented in t
 - **Test Result**: **PASS**.
 - **Limitations**: No token authentication on chat session resumption.
 
+### Category: Scientific Evaluation & Quality Assurance (Milestone F)
+| Method | Path | Handler | File Location | Auth | Status |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/evaluation/scientific-benchmarks` | `get_scientific_benchmarks` | [`app/api/v1/evaluation.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/evaluation.py#L22) | None / Dual-Mode | 200 OK |
+| `GET` | `/api/v1/evaluation/plot/{plot_id}/quality-report` | `get_plot_quality_report` | [`app/api/v1/evaluation.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/evaluation.py#L38) | None / Dual-Mode | 200 OK / 404 Not Found |
+
+- **`GET /api/v1/evaluation/scientific-benchmarks`**:
+  - Purpose: Validates FAO-56 Penman-Monteith ET0 calculations against ICAR lysimeter benchmark datasets across Indian agro-climatic zones (tolerances <= 5.0%).
+  - Response Schema: `ScientificBenchmarkReport` (contains per-benchmark items, relative error %, and overall suite status).
+- **`GET /api/v1/evaluation/plot/{plot_id}/quality-report`**:
+  - Purpose: Computes plot telemetry data completeness %, sensor freshness in hours, sensor anomalies, and agronomic uncertainty score (0.05–0.95) with quality grade (`EXCELLENT`, `GOOD`, `ADEQUATE`, `DEGRADED`).
+  - Response Schema: `PlotQualityReport`.
+
 ---
 
-## 2. Target Missing Endpoints (Roadmap Inventory)
+### Category: Governed Data Products & Parametric Insurance (Milestone F)
+| Method | Path | Handler | File Location | Auth | Status |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/governed/fpo/crop-summary` | `get_fpo_crop_summary` | [`app/api/v1/governed_data.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/governed_data.py#L22) | None / Dual-Mode | 200 OK |
+| `GET` | `/api/v1/governed/insurance/drought-index` | `get_insurance_drought_index` | [`app/api/v1/governed_data.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/governed_data.py#L39) | None / Dual-Mode | 200 OK |
 
-The following endpoints are required by the Target Architecture milestones:
+- **`GET /api/v1/governed/fpo/crop-summary`**:
+  - Purpose: Produces DPDP Act-compliant, de-identified collective crop acreage and active farmer counts aggregated by crop and variety with K-Anonymity privacy guarantees. Excludes farmers without explicit `ANALYTICS`/`AGRISTACK_DATA_SHARE` consent or with `REVOKED` consent.
+  - Query Parameters: `district: Optional[str]`
+  - Response Schema: `FPOCropSummaryReport`.
+- **`GET /api/v1/governed/insurance/drought-index`**:
+  - Purpose: Computes block-level parametric drought risk scores combining rainfall deficits, Sentinel-2 NDWI canopy moisture indices, and CGWB groundwater levels, triggering automated insurance payout directives (`TRIGGER_PAYOUT`, `WATCH`, `NORMAL`).
+  - Query Parameters: `district: Optional[str]`
+  - Response Schema: `ParametricInsuranceIndexReport`.
 
-### Milestone A: Observability Probes [COMPLETED]
-- `GET /health`: Liveness probe verifying process health. (Implemented & Tested)
-- `GET /ready`: Readiness probe verifying active database connection (`SELECT 1`) and storage read/write. (Implemented & Tested)
+---
 
-### Milestone B: Identity, Auth & Consent (M03)
-- `POST /api/v1/auth/register`: Create user account with phone and credentials.
-- `POST /api/v1/auth/token`: Authenticate user and issue JWT access token.
-- `POST /api/v1/auth/refresh`: Refresh expired JWT access token.
-- `GET /api/v1/consent`: List active consents for authenticated farmer.
-- `POST /api/v1/consent`: Record specific agricultural data processing consent.
-- `POST /api/v1/consent/{consent_id}/withdraw`: Withdraw consent and log audit trail.
-
-### Milestone C: Farms & Multi-Plot Aggregation (M04)
-- `POST /api/v1/farms`: Create a Farm holding multiple plots.
-- `GET /api/v1/farms`: List all farms and their member plots.
-
-### Milestone D: Knowledge Retrieval (S11)
-- `GET /api/v1/knowledge/search`: Full-text search of approved ICAR packages of practices.
-
-### Milestone E: Farmer Workflows (S13)
-- `POST /api/v1/planner/suitability`: Rank crops by soil, climate, water, and market feasibility.
-- `GET /api/v1/roadmap/{crop_cycle_id}`: Retrieve milestone checkpoints and agronomic schedule.
-- `POST /api/v1/roadmap/{checkpoint_id}/complete`: Mark crop cycle checkpoint complete.
-- `POST /api/v1/sync/push`: Push offline client mutations with idempotency key.
-- `GET /api/v1/sync/pull`: Pull server-side state delta since timestamp.
-- `GET /api/v1/notifications`: List active hazard and irrigation notifications.
-- `POST /api/v1/notifications/{id}/read`: Mark notification as read.
+## 2. Completed Milestones Summary
+- **Milestone A (Foundation & Observability)**: `/health`, `/ready`, structured logging, RFC 7807 problem details.
+- **Milestone B (Identity, Storage & Multi-Plot)**: Users, PBKDF2 PIN hashing, JWT tokens, DPDP consent lifecycle, audit logging, parent Farm holdings and multi-plot management.
+- **Milestone C (Environmental Observations & Spatial Ingestion)**: Time-series weather observations & forecasts, Sentinel-2 spectral indices, CGWB groundwater hydrographs, and DEM terrain analysis.
+- **Milestone D (Crop Knowledge Base & Soil Intelligence)**: 8 Indian staple crops taxonomy, phenological growth stages, ICAR STCR fertilizer engine, qualitative ratings, and bag conversions.
+- **Milestone E (Farmer Workflows & Conversational Intelligence)**: Multi-criteria crop suitability planner, crop roadmap checkpoints, offline batch sync, proactive farmer alerts, and ICAR PoP RAG knowledge retrieval.
+- **Milestone F (Scientific Evaluation, Governed Data Products & Production Hardening)**: ICAR lysimeter empirical benchmarks, plot telemetry quality & uncertainty scoring, DPDP-compliant FPO aggregation, parametric insurance drought index, sliding-window rate limiting, JWT token revocation blacklist, OWASP security headers, and Docker container orchestration.
 

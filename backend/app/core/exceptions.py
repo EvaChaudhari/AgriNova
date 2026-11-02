@@ -99,6 +99,18 @@ class StorageUnavailableError(AgriNovaException):
     title = "Storage Backend Unavailable"
 
 
+class RateLimitExceededError(AgriNovaException):
+    """Raised when client exceeds sliding-window request rate limit."""
+
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    error_code = "RATE_LIMIT_EXCEEDED"
+    title = "Too Many Requests"
+
+    def __init__(self, detail: str = "Rate limit exceeded. Please slow down.", retry_after: int = 60) -> None:
+        super().__init__(detail=detail, status_code=status.HTTP_429_TOO_MANY_REQUESTS, error_code="RATE_LIMIT_EXCEEDED", title="Too Many Requests")
+        self.retry_after = retry_after
+
+
 def build_problem_details_response(
     status_code: int,
     title: str,
@@ -107,6 +119,7 @@ def build_problem_details_response(
     instance: str,
     correlation_id: str,
     invalid_params: Optional[list[dict[str, Any]]] = None,
+    headers: Optional[dict[str, str]] = None,
 ) -> JSONResponse:
     """Build an RFC 7807 compliant problem details response."""
     error_type = f"urn:agrinova:error:{error_code.lower().replace('_', '-')}"
@@ -121,9 +134,13 @@ def build_problem_details_response(
     if invalid_params:
         content["invalid_params"] = invalid_params
 
+    resp_headers = {"X-Correlation-ID": correlation_id}
+    if headers:
+        resp_headers.update(headers)
+
     return JSONResponse(
         status_code=status_code,
         content=content,
         media_type="application/problem+json",
-        headers={"X-Correlation-ID": correlation_id},
+        headers=resp_headers,
     )

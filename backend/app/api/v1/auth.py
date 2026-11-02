@@ -18,6 +18,7 @@ from app.core.exceptions import (
     UnauthorizedAccessError,
     ValidationError,
 )
+from app.core.rate_limiter import blacklist_token
 from app.core.security import (
     create_access_token,
     hash_pin_or_password,
@@ -282,4 +283,30 @@ def get_current_profile(
         devices=devices,
         auth_type=identity.auth_type,
     )
+
+
+@router.post("/logout")
+def logout_farmer(
+    request: Request,
+    identity: Identity = Depends(get_required_identity),
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    """Revoke active JWT access token and terminate session."""
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.strip().startswith("Bearer "):
+        token = auth_header.strip()[7:].strip()
+        blacklist_token(token)
+
+    ip_addr = request.client.host if request.client else None
+    record_audit_log(
+        db,
+        action="SESSION_LOGOUT_REVOKED",
+        resource_type="auth_token",
+        resource_id=str(identity.user.id) if identity.user else str(identity.device_id),
+        user_id=identity.user.id if identity.user else None,
+        device_id=identity.device_id,
+        details={"status": "REVOKED"},
+        ip_address=ip_addr,
+    )
+    return {"status": "success", "message": "Logged out successfully. Token has been revoked."}
 

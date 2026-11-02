@@ -26,7 +26,9 @@ from app.api.v1 import (
     chat_receptor,
     consent,
     crop_knowledge,
+    evaluation,
     farms,
+    governed_data,
     notifications,
     observations,
     planner,
@@ -126,6 +128,12 @@ async def correlation_and_logging_middleware(request: Request, call_next: Any) -
 
     duration_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
     response.headers["X-Correlation-ID"] = cid
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
     # Emit structured request log entry without leaking private body data
     log_level = logging.WARNING if response.status_code >= 400 else logging.INFO
@@ -193,6 +201,10 @@ async def agrinova_exception_handler(request: Request, exc: AgriNovaException) -
         extra={"correlation_id": cid},
     )
 
+    headers = {}
+    if hasattr(exc, "retry_after"):
+        headers["Retry-After"] = str(exc.retry_after)
+
     return build_problem_details_response(
         status_code=exc.status_code,
         title=exc.title,
@@ -201,6 +213,7 @@ async def agrinova_exception_handler(request: Request, exc: AgriNovaException) -
         instance=request.url.path,
         correlation_id=cid,
         invalid_params=exc.invalid_params,
+        headers=headers,
     )
 
 
@@ -280,6 +293,8 @@ app.include_router(planner.router, prefix=settings.API_V1_STR)
 app.include_router(roadmap.router, prefix=settings.API_V1_STR)
 app.include_router(sync.router, prefix=settings.API_V1_STR)
 app.include_router(notifications.router, prefix=settings.API_V1_STR)
+app.include_router(evaluation.router, prefix=settings.API_V1_STR)
+app.include_router(governed_data.router, prefix=settings.API_V1_STR)
 app.include_router(chat_receptor.router, prefix=settings.API_V1_STR)
 
 

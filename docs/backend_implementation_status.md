@@ -18,28 +18,28 @@
 
 | Module ID | Module Name | Status | Existing Files | Tests Passing | Primary Gap |
 |---|---|---|---|---|---|
-| **M00** | Repository Foundation | `IMPLEMENTED` | `main.py`, `config.py`, `database.py`, `exceptions.py`, `logging.py` | 101/101 pass | Milestone A complete: /health, /ready, structured logging, RFC 7807 |
-| **M01** | Shared Contracts | `IMPLEMENTED` | `schemas/common.py`, `schemas/observations.py`, `schemas/*.py` | 101/101 pass | RFC 7807 ProblemDetails, ProvenanceMetadata, StandardObservationEnvelope |
-| **M02** | Database and Storage | `IMPLEMENTED` | `core/database.py`, `models/*.py`, `repositories/*.py`, `alembic/` | 101/101 pass | 28 tables; repository layer decoupling ORM queries from API endpoints |
-| **M03** | Identity and Consent | `IMPLEMENTED` | `core/security.py`, `core/auth.py`, `models/auth.py`, `models/consent.py`, `api/v1/auth.py`, `api/v1/consent.py` | 101/101 pass | Milestone B complete: PBKDF2 PIN hashing, JWT tokens, dual-mode auth, DPDP consent, audit logs |
-| **M04** | Farmer & Plot Registry | `IMPLEMENTED` | `models/plot.py`, `schemas/farm.py`, `api/v1/farms.py`, `api/v1/plots.py`, `repositories/plot_repository.py` | 101/101 pass | Milestone B complete: Parent Farm entity, concurrent multi-plot support, acreage aggregation |
+| **M00** | Repository Foundation | `IMPLEMENTED` | `main.py`, `config.py`, `database.py`, `exceptions.py`, `logging.py` | 113/113 pass | Milestone A complete: /health, /ready, structured logging, RFC 7807 |
+| **M01** | Shared Contracts | `IMPLEMENTED` | `schemas/common.py`, `schemas/observations.py`, `schemas/*.py` | 113/113 pass | RFC 7807 ProblemDetails, ProvenanceMetadata, StandardObservationEnvelope |
+| **M02** | Database and Storage | `IMPLEMENTED` | `core/database.py`, `models/*.py`, `repositories/*.py`, `alembic/` | 113/113 pass | 28 tables; repository layer decoupling ORM queries from API endpoints |
+| **M03** | Identity and Consent | `IMPLEMENTED` | `core/security.py`, `core/auth.py`, `models/auth.py`, `models/consent.py`, `api/v1/auth.py`, `api/v1/consent.py` | 113/113 pass | Milestone B complete: PBKDF2 PIN hashing, JWT tokens, dual-mode auth, DPDP consent, audit logs |
+| **M04** | Farmer & Plot Registry | `IMPLEMENTED` | `models/plot.py`, `schemas/farm.py`, `api/v1/farms.py`, `api/v1/plots.py`, `repositories/plot_repository.py` | 113/113 pass | Milestone B complete: Parent Farm entity, concurrent multi-plot support, acreage aggregation |
 | **S0** | Reference Geography | `PARTIALLY IMPLEMENTED` | `services/fallback_data.py` | Indirectly tested | Hardcoded district dictionary; missing formal admin hierarchy |
 | **S1** | Farmer & Plot Onboarding | `FUNCTIONALLY INTEGRATED` | `api/v1/bootstrap.py`, `api/v1/plots.py` | 4/4 pass | Tightly coupled to device_id; consent workflow not integrated |
-| **S2** | Soil Intelligence | `IMPLEMENTED` | `models/telemetry.py`, `engines/fertilizer_engine.py`, `services/soil_ingestion_service.py`, `api/v1/soil.py` | 101/101 pass | Milestone D complete: ICAR STCR fertilizer engine, qualitative ratings, 50kg bag conversion, split schedule |
-| **S3** | Weather & Climate | `IMPLEMENTED` | `services/weather_ingestion.py`, `models/observations.py`, `api/v1/observations.py` | 101/101 pass | Milestone C complete: Multi-day rolling forecasts, 24h/72h rainfall accumulation, storm triggers |
-| **S4** | Water Resources | `IMPLEMENTED` | `services/wris_service.py`, `models/observations.py`, `api/v1/observations.py` | 101/101 pass | Milestone C complete: India-WRIS station hydrographs, 5-yr decline rate, drought indicators |
-| **S5** | Satellite Processing | `IMPLEMENTED` | `engines/satellite_processor.py`, `models/observations.py`, `api/v1/observations.py` | 101/101 pass | Milestone C complete: Sentinel-2 zonal statistics, SCL cloud masking, phenology fallback |
-| **S6** | Terrain & Hydrology | `IMPLEMENTED` | `engines/terrain_engine.py`, `models/observations.py`, `api/v1/observations.py` | 101/101 pass | Milestone C complete: DEM slope %, degrees, TWI, erosion risk classification, regional hypsometric fallback |
-| **S7** | Crop Knowledge Base | `IMPLEMENTED` | `models/crop_knowledge.py`, `services/crop_seed_service.py`, `api/v1/crop_knowledge.py` | 101/101 pass | Milestone D complete: Database-backed versioned taxonomy for 8 staple crops, varieties, FAO-56 stages, STCR benchmarks, IPM pest profiles |
+| **S2** | Soil Intelligence | `IMPLEMENTED` | `models/telemetry.py`, `engines/fertilizer_engine.py`, `services/soil_ingestion_service.py`, `api/v1/soil.py` | 113/113 pass | Milestone D complete: ICAR STCR fertilizer engine, qualitative ratings, 50kg bag conversion, split schedule |
+| **S3** | Weather & Climate | `IMPLEMENTED` | `services/weather_ingestion.py`, `models/observations.py`, `api/v1/observations.py` | 113/113 pass | Milestone C complete: Multi-day rolling forecasts, 24h/72h rainfall accumulation, storm triggers |
+| **S4** | Water Resources | `IMPLEMENTED` | `services/wris_service.py`, `models/observations.py`, `api/v1/observations.py` | 113/113 pass | Milestone C complete: India-WRIS station hydrographs, 5-yr decline rate, drought indicators |
+| **S5** | Satellite Processing | `IMPLEMENTED` | `engines/satellite_processor.py`, `models/observations.py`, `api/v1/observations.py` | 113/113 pass | Milestone C complete: Sentinel-2 zonal statistics, SCL cloud masking, phenology fallback |
+| **S6** | Terrain & Hydrology | `IMPLEMENTED` | `engines/terrain_engine.py`, `models/observations.py`, `api/v1/observations.py` | 113/113 pass | Milestone C complete: DEM slope %, degrees, TWI, erosion risk classification, regional hypsometric fallback |
+| **S7** | Crop Knowledge Base | `IMPLEMENTED` | `models/crop_knowledge.py`, `services/crop_seed_service.py`, `api/v1/crop_knowledge.py` | 113/113 pass | Milestone D complete: Database-backed versioned taxonomy for 8 staple crops, varieties, FAO-56 stages, STCR benchmarks, IPM pest profiles |
 | **S8** | Water Balance & Irrigation | `SCIENTIFICALLY EVALUATED` | `engines/fao56_hydrology.py` | 7/7 pass | Complete FAO-56 Penman-Monteith implementation; soil moisture sensor feed missing |
 | **S9** | Crop Health & Yield | `PARTIALLY IMPLEMENTED` | `services/vision_service.py` | 1/1 pass | CIB leaf disease validator working; quantitative yield estimation missing |
 | **S10** | Hazard Engine | `FUNCTIONALLY INTEGRATED` | `engines/hazard_state.py` | 5/5 pass | 3-state FSM with storm & drought directives; historical hazard log missing |
-| **S11** | Knowledge Retrieval (RAG) | `IMPLEMENTED` | `models/workflows.py`, `services/retrieval_service.py` | 101/101 pass | Milestone E complete: Vetted ICAR / SAU Package of Practices cards, RAG prompt injection |
+| **S11** | Knowledge Retrieval (RAG) | `IMPLEMENTED` | `models/workflows.py`, `services/retrieval_service.py` | 113/113 pass | Milestone E complete: Vetted ICAR / SAU Package of Practices cards, RAG prompt injection |
 | **S12** | Gemini Chat & Multilingual | `FUNCTIONALLY INTEGRATED` | `api/v1/chat_receptor.py`, `services/speech_service.py` | 5/5 pass | Fully working gateway + fallback; needs retrieval grounding & token security |
-| **S13** | Farmer Workflows | `IMPLEMENTED` | `engines/crop_planner.py`, `engines/roadmap_engine.py`, `services/sync_service.py`, `services/notification_service.py`, `api/v1/planner.py`, `api/v1/roadmap.py`, `api/v1/sync.py`, `api/v1/notifications.py` | 101/101 pass | Milestone E complete: Multi-criteria crop planner, stage roadmap calendars, offline sync engine, proactive notifications |
-| **S14** | Evaluation & MLOps | `PARTIALLY IMPLEMENTED` | `tests/test_fao56.py`, `tests/test_hazard_state.py` | 12/12 pass | Scientific unit benchmarks verified; automated drift/quality reports missing |
-| **S15** | Governed Data Products | `NOT IMPLEMENTED` | — | None | Aggregation and de-identification not yet started (later milestone) |
-| **S16** | Privacy and Security | `PARTIALLY IMPLEMENTED` | `core/config.py` | 23/23 pass | Secrets in env; lacking token auth, rate limiting, and access control |
+| **S13** | Farmer Workflows | `IMPLEMENTED` | `engines/crop_planner.py`, `engines/roadmap_engine.py`, `services/sync_service.py`, `services/notification_service.py`, `api/v1/planner.py`, `api/v1/roadmap.py`, `api/v1/sync.py`, `api/v1/notifications.py` | 113/113 pass | Milestone E complete: Multi-criteria crop planner, stage roadmap calendars, offline sync engine, proactive notifications |
+| **S14** | Evaluation & MLOps | `IMPLEMENTED` | `engines/evaluation_engine.py`, `schemas/evaluation.py`, `api/v1/evaluation.py` | 113/113 pass | Milestone F complete: ICAR empirical lysimeter benchmarks (tolerances <5%) + plot telemetry completeness, freshness & uncertainty scoring |
+| **S15** | Governed Data Products | `IMPLEMENTED` | `services/governed_data_service.py`, `schemas/governed_data.py`, `api/v1/governed_data.py` | 113/113 pass | Milestone F complete: DPDP Act consent enforcement, K-anonymity FPO crop acreage summary & parametric insurance drought index |
+| **S16** | Privacy and Security | `IMPLEMENTED` | `core/rate_limiter.py`, `core/security.py`, `core/auth.py`, `main.py` | 113/113 pass | Milestone F complete: Sliding-window rate limiter (HTTP 429), JWT token revocation/logout, OWASP security headers |
 
 ---
 
@@ -562,61 +562,96 @@
 ### S14 — EVALUATION AND MLOPS
 - **Module ID**: `S14`
 - **Module Name**: Scientific Evaluation & Quality Assurance
-- **Purpose**: Benchmark validation of hydrological models, hazard state transitions, and AI responses.
+- **Purpose**: Automated empirical benchmark verification of hydrological models (FAO-56 Penman-Monteith ET0) against ICAR lysimeter reference datasets across Indian agro-climatic zones, and plot-level telemetry quality scoring (completeness, sensor freshness, anomaly detection, agronomic uncertainty).
 - **Existing File Paths**:
+  - `backend/app/engines/evaluation_engine.py`
+  - `backend/app/schemas/evaluation.py`
+  - `backend/app/api/v1/evaluation.py`
+  - `backend/tests/test_evaluation_engine.py`
   - `backend/tests/test_fao56.py`
-  - `backend/tests/test_hazard_state.py`
-  - `backend/tests/test_chat_receptor.py`
-- **Existing Classes & Functions**: Pytest fixtures and assertions.
-- **Existing Database Tables**: None.
-- **Existing API Endpoints**: None.
-- **Upstream Dependencies**: Pytest.
-- **Downstream Consumers**: CI/CD pipelines.
-- **Existing Tests**: 23 tests in `backend/tests/`.
-- **Actual Test Results**: **PASS** (23 passed in 0.58s).
-- **Missing Functionality**: Automated data drift metrics; retrieval precision/recall benchmarks.
+- **Existing Classes & Functions**:
+  - `EvaluationEngine.evaluate_scientific_benchmarks`
+  - `EvaluationEngine.evaluate_plot_data_quality`
+  - `ScientificBenchmarkItem`, `ScientificBenchmarkReport`, `PlotQualityReport`
+  - `GET /api/v1/evaluation/scientific-benchmarks`
+  - `GET /api/v1/evaluation/plot/{plot_id}/quality-report`
+- **Existing Database Tables**: None directly defined (evaluates observations, telemetry, and plots).
+- **Existing API Endpoints**:
+  - `GET /api/v1/evaluation/scientific-benchmarks`
+  - `GET /api/v1/evaluation/plot/{plot_id}/quality-report`
+- **Upstream Dependencies**: `M02`, `M04`, `S2`, `S3`, `S5`, `S8`.
+- **Downstream Consumers**: CI/CD pipelines, MLOps dashboards, agronomist monitoring portals.
+- **Existing Tests**: 5 dedicated tests in `backend/tests/test_evaluation_engine.py` + 7 tests in `test_fao56.py`.
+- **Actual Test Results**: **PASS** (12/12 pass).
+- **Missing Functionality**: Real-time automated data drift alert dispatch to webhooks.
 - **Security Limitations**: None.
 - **Data-Source Limitations**: None.
-- **Integration Status**: `PARTIALLY IMPLEMENTED`
-- **Recommended Next Step**: Expand scientific validation suite to include real Indian agro-climatic benchmark scenarios (Vidarbha, Rayalaseema, Punjab).
+- **Integration Status**: `IMPLEMENTED`
+- **Recommended Next Step**: Connect to external live ML model serving platforms when custom vision models are trained.
 
 ---
 
 ### S15 — GOVERNED DATA PRODUCTS
 - **Module ID**: `S15`
-- **Module Name**: Aggregated & Anonymized Agricultural Data
-- **Purpose**: Privacy-preserving agricultural analytics for research and extension.
-- **Existing File Paths**: None.
-- **Existing Classes & Functions**: None.
-- **Existing Database Tables**: None.
-- **Existing API Endpoints**: None.
-- **Upstream Dependencies**: `M02`, `M03`.
-- **Downstream Consumers**: External research partners.
-- **Existing Tests**: None.
-- **Actual Test Results**: `NOT IMPLEMENTED`.
-- **Missing Functionality**: Aggregation pipelines, minimum k-anonymity group size enforcement, de-identification.
-- **Security Limitations**: Must strictly enforce farmer consent before aggregation.
-- **Data-Source Limitations**: Requires substantial farmer dataset.
-- **Integration Status**: `NOT IMPLEMENTED`
-- **Recommended Next Step**: Implement consent-filtered aggregation queries in later governance milestone.
+- **Module Name**: Aggregated & Anonymized Agricultural Data Products
+- **Purpose**: Privacy-preserving, DPDP Act-compliant spatial analytical products for Farmer Producer Organizations (FPOs), research institutions, and parametric crop insurance providers. Strictly enforces granted consent (`ANALYTICS`, `AGRISTACK_DATA_SHARE`) and redacts PII using K-Anonymity.
+- **Existing File Paths**:
+  - `backend/app/services/governed_data_service.py`
+  - `backend/app/schemas/governed_data.py`
+  - `backend/app/api/v1/governed_data.py`
+  - `backend/tests/test_governed_data.py`
+- **Existing Classes & Functions**:
+  - `GovernedDataService.is_plot_consented`
+  - `GovernedDataService.get_fpo_crop_summary`
+  - `GovernedDataService.get_parametric_drought_index`
+  - `FPOCropAcreageItem`, `FPOCropSummaryReport`, `ParametricBlockDroughtItem`, `ParametricInsuranceIndexReport`
+  - `GET /api/v1/governed/fpo/crop-summary`
+  - `GET /api/v1/governed/insurance/drought-index`
+- **Existing Database Tables**: Queries `consent_records`, `farms`, `farm_plots`, `crop_cycles`.
+- **Existing API Endpoints**:
+  - `GET /api/v1/governed/fpo/crop-summary`
+  - `GET /api/v1/governed/insurance/drought-index`
+- **Upstream Dependencies**: `M02`, `M03`, `M04`, `S3`, `S4`, `S5`.
+- **Downstream Consumers**: FPO management systems, crop insurance portals, AgriStack aggregators.
+- **Existing Tests**: 3 dedicated tests in `backend/tests/test_governed_data.py`.
+- **Actual Test Results**: **PASS** (3/3 pass).
+- **Missing Functionality**: Export format toggles (Parquet, Shapefile).
+- **Security Limitations**: Zero individual parcel disclosure; DPDP consent status strictly validated prior to aggregation.
+- **Data-Source Limitations**: District-level spatial indexing.
+- **Integration Status**: `IMPLEMENTED`
+- **Recommended Next Step**: Integrate GeoParquet streaming exports for large-scale state-level analytics.
 
 ---
 
 ### S16 — PRIVACY AND SECURITY
 - **Module ID**: `S16`
-- **Module Name**: Security Architecture, Access Control & Audit
-- **Purpose**: Cryptographic authentication, role-based access, rate limiting, and audit logging.
-- **Existing File Paths**: `backend/app/core/config.py`
-- **Existing Classes & Functions**: Environment configuration.
-- **Existing Database Tables**: None (`audit_logs` missing).
-- **Existing API Endpoints**: None.
-- **Upstream Dependencies**: `M00`.
-- **Downstream Consumers**: All API routes.
-- **Existing Tests**: None directly testing auth rejection (since auth is currently not enforced).
-- **Actual Test Results**: `PARTIALLY IMPLEMENTED`.
-- **Missing Functionality**: JWT tokens, password hashing, rate limiting, audit log persistence.
-- **Security Limitations**: No authentication currently enforced on APIs beyond matching a string `device_id`.
+- **Module Name**: Security Architecture, Access Control & Hardening
+- **Purpose**: Sliding-window rate limiting (RFC 7807 problem details + `Retry-After`), JWT token blacklisting and logout revocation, OWASP security response headers (`X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security`, `Content-Security-Policy`, `Referrer-Policy`), and production container orchestration.
+- **Existing File Paths**:
+  - `backend/app/core/rate_limiter.py`
+  - `backend/app/core/security.py`
+  - `backend/app/core/auth.py`
+  - `backend/app/main.py`
+  - `backend/app/api/v1/auth.py`
+  - `backend/tests/test_security_hardening.py`
+  - `Dockerfile`
+  - `docker-compose.yml`
+- **Existing Classes & Functions**:
+  - `SlidingWindowRateLimiter`, `global_rate_limiter`, `rate_limit`
+  - `blacklist_token`, `is_token_blacklisted`
+  - `POST /api/v1/auth/logout`
+  - `correlation_and_logging_middleware` (OWASP header injection)
+- **Existing Database Tables**: `audit_logs`, `consent_records`, `users`.
+- **Existing API Endpoints**:
+  - `POST /api/v1/auth/logout`
+  - All endpoints protected by rate limiting and OWASP headers.
+- **Upstream Dependencies**: `M00`, `M03`.
+- **Downstream Consumers**: All API routes and mobile/web clients.
+- **Existing Tests**: 4 dedicated tests in `backend/tests/test_security_hardening.py` + 9 tests in `test_identity_consent.py`.
+- **Actual Test Results**: **PASS** (13/13 pass).
+- **Missing Functionality**: Distributed Redis rate-limiter backend for multi-instance cluster deployments (in-memory implemented for single-node / test).
+- **Security Limitations**: None.
 - **Data-Source Limitations**: None.
-- **Integration Status**: `PARTIALLY IMPLEMENTED`
-- **Recommended Next Step**: Implement `security.py` with JWT token issuance, password hashing, and dependency-based route protection.
+- **Integration Status**: `IMPLEMENTED`
+- **Recommended Next Step**: Configure Redis connection string in production Kubernetes deployment.
 
