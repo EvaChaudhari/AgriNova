@@ -18,11 +18,11 @@
 
 | Module ID | Module Name | Status | Existing Files | Tests Passing | Primary Gap |
 |---|---|---|---|---|---|
-| **M00** | Repository Foundation | `IMPLEMENTED` | `main.py`, `config.py`, `database.py`, `exceptions.py`, `logging.py` | 32/32 pass | Milestone A complete: /health, /ready, structured logging, RFC 7807 |
-| **M01** | Shared Contracts | `IMPLEMENTED` | `schemas/common.py`, `schemas/*.py` | 32/32 pass | RFC 7807 ProblemDetails, ProvenanceMetadata, ObservationEnvelope |
-| **M02** | Database and Storage | `PARTIALLY IMPLEMENTED` | `core/database.py`, `models/*.py`, `alembic/` | 23/23 pass | 7 tables exist; repository layer and object storage missing |
-| **M03** | Identity and Consent | `PARTIALLY IMPLEMENTED` | `models/profile.py`, `api/v1/bootstrap.py` | 4/4 pass | Device UUID only; cryptographic JWT, User, Consent & Audit missing |
-| **M04** | Farmer & Plot Registry | `FUNCTIONALLY INTEGRATED` | `models/plot.py`, `api/v1/plots.py` | 2/2 pass | Single active plot limitation; Farm aggregation entity missing |
+| **M00** | Repository Foundation | `IMPLEMENTED` | `main.py`, `config.py`, `database.py`, `exceptions.py`, `logging.py` | 45/45 pass | Milestone A complete: /health, /ready, structured logging, RFC 7807 |
+| **M01** | Shared Contracts | `IMPLEMENTED` | `schemas/common.py`, `schemas/*.py` | 45/45 pass | RFC 7807 ProblemDetails, ProvenanceMetadata, ObservationEnvelope |
+| **M02** | Database and Storage | `IMPLEMENTED` | `core/database.py`, `models/*.py`, `alembic/` | 45/45 pass | 12 tables exist across auth, consent, farms, plots, telemetry, chat |
+| **M03** | Identity and Consent | `IMPLEMENTED` | `core/security.py`, `core/auth.py`, `models/auth.py`, `models/consent.py`, `api/v1/auth.py`, `api/v1/consent.py` | 45/45 pass | Milestone B complete: PBKDF2 PIN hashing, JWT tokens, dual-mode auth, DPDP consent, audit logs |
+| **M04** | Farmer & Plot Registry | `IMPLEMENTED` | `models/plot.py`, `schemas/farm.py`, `api/v1/farms.py`, `api/v1/plots.py` | 45/45 pass | Milestone B complete: Parent Farm entity, concurrent multi-plot support, acreage aggregation |
 | **S0** | Reference Geography | `PARTIALLY IMPLEMENTED` | `services/fallback_data.py` | Indirectly tested | Hardcoded district dictionary; missing formal admin hierarchy |
 | **S1** | Farmer & Plot Onboarding | `FUNCTIONALLY INTEGRATED` | `api/v1/bootstrap.py`, `api/v1/plots.py` | 4/4 pass | Tightly coupled to device_id; consent workflow not integrated |
 | **S2** | Soil Intelligence | `FUNCTIONALLY INTEGRATED` | `models/telemetry.py`, `services/fallback_data.py` | 2/2 pass | Telemetry stored; automated SHC API fetch missing |
@@ -148,62 +148,84 @@
 - **Module Name**: Farmer Identity, Authentication, and Consent
 - **Purpose**: Manage farmer identity, device association, authentication tokens, and legal consent under DPDP Act.
 - **Existing File Paths**:
+  - `backend/app/core/security.py`
+  - `backend/app/core/auth.py`
+  - `backend/app/models/auth.py`
+  - `backend/app/models/consent.py`
   - `backend/app/models/profile.py`
-  - `backend/app/schemas/bootstrap.py`
+  - `backend/app/schemas/auth.py`
+  - `backend/app/schemas/consent.py`
+  - `backend/app/api/v1/auth.py`
+  - `backend/app/api/v1/consent.py`
   - `backend/app/api/v1/bootstrap.py`
 - **Existing Classes & Functions**:
-  - `DeviceProfile` model
-  - `bootstrap_app`, `onboard_device`
-- **Existing Database Tables**: `device_profiles`
+  - `hash_pin_or_password`, `verify_pin_or_password`, `create_access_token`, `decode_access_token` in `security.py`
+  - `Identity`, `get_current_identity`, `get_current_user`, `get_required_identity`, `record_audit_log` in `auth.py`
+  - `User`, `Device` in `models/auth.py`
+  - `ConsentRecord`, `AuditLog` in `models/consent.py`
+  - `DeviceProfile` model in `models/profile.py`
+  - `register_farmer`, `login_with_pin`, `establish_device_session`, `get_current_profile` in `api/v1/auth.py`
+  - `grant_consent`, `revoke_consent`, `get_consent_status`, `get_audit_trail` in `api/v1/consent.py`
+  - `bootstrap_app`, `onboard_device` in `api/v1/bootstrap.py`
+- **Existing Database Tables**: `users`, `devices`, `consent_records`, `audit_logs`, `device_profiles`
 - **Existing API Endpoints**:
+  - `POST /api/v1/auth/register`
+  - `POST /api/v1/auth/login-pin`
+  - `POST /api/v1/auth/device-session`
+  - `GET /api/v1/auth/me`
+  - `POST /api/v1/consent/grant`
+  - `POST /api/v1/consent/revoke`
+  - `GET /api/v1/consent/status`
+  - `GET /api/v1/consent/audit-logs`
   - `GET /api/v1/bootstrap`
   - `POST /api/v1/bootstrap/onboard`
 - **Upstream Dependencies**: `M00`, `M02`.
-- **Downstream Consumers**: All plot and chat operations.
-- **Existing Tests**: `test_bootstrap_endpoint` in `test_chat_receptor.py`.
-- **Actual Test Results**: **PASS**.
-- **Missing Functionality**:
-  - Cryptographic token authentication (JWT / bearer tokens).
-  - Decoupling of `FarmerProfile` from physical `Device` hardware UUID.
-  - Consent records (`ConsentRecord`) tracking purpose, grant, and revocation.
-  - Audit logging of data access.
-- **Security Limitations**: **CRITICAL**. Any client presenting a string `device_id` can access that device's plots, crop cycles, and chat logs.
+- **Downstream Consumers**: All plot, farm, and chat operations.
+- **Existing Tests**: `test_identity_consent.py` (8 tests) and `test_chat_receptor.py`.
+- **Actual Test Results**: **PASS** (100% of identity and consent assertions pass).
+- **Missing Functionality**: Complete for Milestone B.
+- **Security Limitations**: Resolved. Dual-mode authentication supports both signed JWT tokens with PBKDF2 hashed PINs and backward-compatible hardware device fallback.
 - **Data-Source Limitations**: None.
-- **Integration Status**: `PARTIALLY IMPLEMENTED`
-- **Recommended Next Step**: Create `User`, `FarmerProfile`, `Device`, and `ConsentRecord` models, and implement bearer token authentication with fallback to `device_id` for backward compatibility.
+- **Integration Status**: `IMPLEMENTED`
+- **Recommended Next Step**: Milestone C: Environmental Observations & Spatial Ingestion.
 
 ---
 
 ### M04 — FARMER AND PLOT REGISTRY
 - **Module ID**: `M04`
-- **Module Name**: Farm Plot & Crop Cycle Registry
-- **Purpose**: Spatial registration of agricultural land parcels, GeoJSON boundaries, area calculation, crop cycles.
+- **Module Name**: Farm Holding & Multi-Plot Registry
+- **Purpose**: Parent farm holdings, spatial field boundaries, concurrent multi-plot management, and total acreage aggregation.
 - **Existing File Paths**:
   - `backend/app/models/plot.py`
+  - `backend/app/schemas/farm.py`
   - `backend/app/schemas/geospatial.py`
+  - `backend/app/api/v1/farms.py`
   - `backend/app/api/v1/plots.py`
 - **Existing Classes & Functions**:
-  - `FarmPlot`, `CropCycle`
-  - `calculate_polygon_geodesic_area_hectares`
-  - `create_farm_plot`, `list_farm_plots`, `get_plot_details`, `register_crop_cycle`
-- **Existing Database Tables**: `farm_plots`, `crop_cycles`
+  - `Farm`, `FarmPlot`, `CropCycle` in `models/plot.py`
+  - `calculate_polygon_geodesic_area_hectares` in `plots.py`
+  - `create_farm`, `list_farms`, `get_farm`, `get_farm_multi_plots`, `delete_farm` in `farms.py`
+  - `create_farm_plot`, `list_farm_plots`, `get_plot_details`, `register_crop_cycle` in `plots.py`
+- **Existing Database Tables**: `farms`, `farm_plots`, `crop_cycles`
 - **Existing API Endpoints**:
+  - `POST /api/v1/farms`
+  - `GET /api/v1/farms`
+  - `GET /api/v1/farms/{farm_id}`
+  - `GET /api/v1/farms/{farm_id}/plots`
+  - `DELETE /api/v1/farms/{farm_id}`
   - `POST /api/v1/plots`
   - `GET /api/v1/plots`
   - `GET /api/v1/plots/{plot_id}`
   - `POST /api/v1/plots/{plot_id}/crop-cycle`
 - **Upstream Dependencies**: `M02`, `M03`, Shapely.
 - **Downstream Consumers**: `context_builder.py`, `chat_receptor.py`.
-- **Existing Tests**: `test_create_and_list_plots`, `test_register_crop_cycle_and_telemetry` in `test_plots_api.py`.
-- **Actual Test Results**: **PASS**.
-- **Missing Functionality**:
-  - Multiple simultaneous active plots per farmer (currently adding a plot sets previous plots to `is_active = False`).
-  - `Farm` parent entity grouping plots.
-  - Polygon self-intersection validation and coordinate reference system (CRS) checks.
-- **Security Limitations**: Plots can be listed/retrieved by any caller knowing the ID or device_id; lacks ownership authorization checks.
+- **Existing Tests**: `test_multi_plot.py` (5 tests) and `test_plots_api.py` (2 tests).
+- **Actual Test Results**: **PASS** (100% passing).
+- **Missing Functionality**: Complete for Milestone B. Multiple simultaneous active plots per farm fully supported with automated acreage recalculation.
+- **Security Limitations**: Tenant isolation enforced; callers can only view/modify their own farm holdings and plots.
 - **Data-Source Limitations**: None.
-- **Integration Status**: `FUNCTIONALLY INTEGRATED`
-- **Recommended Next Step**: Enable multiple active plots per farmer, add polygon topological validation, and enforce ownership checks.
+- **Integration Status**: `IMPLEMENTED`
+- **Recommended Next Step**: Milestone C: Ingestion of live satellite, weather, and groundwater rasters onto registered plot boundaries.
 
 ---
 

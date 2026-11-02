@@ -1,14 +1,14 @@
 """Farm Plot & Agronomic Telemetry CRUD Endpoints."""
 
 import math
-from typing import Any
+from typing import Any, Optional
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from shapely.geometry import shape
 
 from app.core.database import get_db
 from app.models.profile import DeviceProfile
-from app.models.plot import FarmPlot, CropCycle
+from app.models.plot import Farm, FarmPlot, CropCycle
 from app.models.telemetry import GroundwaterObservation, SoilHealthRecord
 from app.schemas.geospatial import (
     PlotCreateRequest,
@@ -60,10 +60,26 @@ def create_farm_plot(
             detail=f"Invalid GeoJSON polygon coordinates: {str(e)}",
         )
 
-    # Set previous plots inactive if single primary plot desired
-    db.query(FarmPlot).filter(FarmPlot.device_id == payload.device_id).update({"is_active": False})
+    # Verify parent farm if specified
+    farm = None
+    if payload.farm_id is not None:
+        farm = db.query(Farm).filter(Farm.id == payload.farm_id).first()
+        if not farm:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Farm holding with ID {payload.farm_id} not found.",
+            )
+
+    # Deactivate previous standalone plots only if NOT registering under a multi-plot farm
+    if not payload.farm_id:
+        db.query(FarmPlot).filter(
+            FarmPlot.device_id == payload.device_id,
+            FarmPlot.farm_id.is_(None),
+        ).update({"is_active": False})
 
     plot = FarmPlot(
+        farm_id=payload.farm_id,
+        user_id=farm.user_id if farm else None,
         device_id=payload.device_id,
         name=payload.name,
         survey_number=payload.survey_number,
@@ -81,16 +97,31 @@ def create_farm_plot(
     db.commit()
     db.refresh(plot)
 
+    # Recalculate parent farm total area if linked
+    if farm:
+        active_plots = db.query(FarmPlot).filter(FarmPlot.farm_id == farm.id, FarmPlot.is_active.is_(True)).all()
+        farm.total_area_hectares = round(sum(p.area_hectares for p in active_plots), 2)
+        db.commit()
+
     return PlotResponse.model_validate(plot)
 
 
 @router.get("", response_model=list[PlotResponse])
 def list_farm_plots(
-    device_id: str = Query(..., description="Hardware device identifier"),
+    device_id: Optional[str] = Query(None, description="Hardware device identifier"),
+    farm_id: Optional[int] = Query(None, description="Parent farm holding identifier"),
     db: Session = Depends(get_db),
 ) -> list[PlotResponse]:
-    """Retrieve all registered plots for a device."""
-    plots = db.query(FarmPlot).filter(FarmPlot.device_id == device_id).order_by(FarmPlot.id.desc()).all()
+    """Retrieve all registered plots for a device or parent farm holding."""
+    query = db.query(FarmPlot)
+    if farm_id is not None:
+        query = query.filter(FarmPlot.farm_id == farm_id)
+    elif device_id:
+        query = query.filter(FarmPlot.device_id == device_id)
+    else:
+        return []
+
+    plots = query.order_by(FarmPlot.id.desc()).all()
     return [PlotResponse.model_validate(p) for p in plots]
 
 

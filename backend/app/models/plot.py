@@ -1,6 +1,7 @@
-"""Farm Plot and Crop Cycle models.
+"""Farm, Farm Plot and Crop Cycle models.
 
 Stores geospatial field boundaries, agronomic metadata, and seasonal cropping cycles.
+Supports parent Farm holding aggregating multiple plots.
 """
 
 from datetime import datetime, timezone, date
@@ -10,11 +11,41 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base, PostGISGeometry
 
 
+class Farm(Base):
+    """Parent Agricultural Holding aggregating multiple contiguous or disjoint farm plots."""
+
+    __tablename__ = "farms"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    device_id = Column(String(128), ForeignKey("device_profiles.device_id", ondelete="CASCADE"), nullable=True, index=True)
+    name = Column(String(120), nullable=False)
+    village = Column(String(120), nullable=True)
+    subdistrict = Column(String(120), nullable=True)
+    district = Column(String(120), nullable=True)
+    state = Column(String(120), nullable=True)
+    total_area_hectares = Column(Float, nullable=False, default=0.0)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    # Relationships
+    user = relationship("User", back_populates="farms")
+    plots = relationship("FarmPlot", back_populates="farm", cascade="all, delete-orphan")
+
+
 class FarmPlot(Base):
     __tablename__ = "farm_plots"
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    device_id = Column(String(128), ForeignKey("device_profiles.device_id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    device_id = Column(String(128), ForeignKey("device_profiles.device_id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String(120), nullable=False)
     survey_number = Column(String(64), nullable=True)
     khasra_number = Column(String(64), nullable=True)
@@ -35,6 +66,7 @@ class FarmPlot(Base):
     )
 
     # Relationships
+    farm = relationship("Farm", back_populates="plots")
     device = relationship("DeviceProfile", back_populates="plots")
     crop_cycles = relationship("CropCycle", back_populates="plot", cascade="all, delete-orphan")
     groundwater_observations = relationship("GroundwaterObservation", back_populates="plot", cascade="all, delete-orphan")
@@ -62,4 +94,3 @@ class CropCycle(Base):
     )
 
     plot = relationship("FarmPlot", back_populates="crop_cycles")
-

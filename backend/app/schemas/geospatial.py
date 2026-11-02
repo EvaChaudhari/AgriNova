@@ -15,6 +15,7 @@ class GeoJSONPolygon(BaseModel):
 
 class PlotCreateRequest(BaseModel):
     device_id: str
+    farm_id: Optional[int] = None
     name: str = Field(..., min_length=1, max_length=120)
     survey_number: Optional[str] = None
     khasra_number: Optional[str] = None
@@ -26,7 +27,9 @@ class PlotCreateRequest(BaseModel):
 
 class PlotResponse(BaseModel):
     id: int
-    device_id: str
+    farm_id: Optional[int] = None
+    user_id: Optional[int] = None
+    device_id: Optional[str] = None
     name: str
     survey_number: Optional[str] = None
     khasra_number: Optional[str] = None

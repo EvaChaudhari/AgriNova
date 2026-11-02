@@ -43,6 +43,39 @@ Below is the exhaustive catalog of every active route currently implemented in t
 | `GET` | `/api/v1/bootstrap` | `bootstrap_app` | [`app/api/v1/bootstrap.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/bootstrap.py#L14) | None (Query `device_id`) | 200 OK |
 | `POST` | `/api/v1/bootstrap/onboard` | `onboard_device` | [`app/api/v1/bootstrap.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/bootstrap.py#L55) | None | 201 Created |
 
+---
+
+### Category: Farmer Identity & Authentication
+| Method | Path | Handler | File Location | Auth | Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/auth/register` | `register_farmer` | [`app/api/v1/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/auth.py#L38) | None | 201 Created |
+| `POST` | `/api/v1/auth/login-pin` | `login_with_pin` | [`app/api/v1/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/auth.py#L112) | None | 200 OK / 401 Unauthorized |
+| `POST` | `/api/v1/auth/device-session` | `establish_device_session` | [`app/api/v1/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/auth.py#L160) | None | 200 OK |
+| `GET` | `/api/v1/auth/me` | `get_current_profile` | [`app/api/v1/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/auth.py#L205) | Bearer JWT or `X-Device-ID` | 200 OK / 401 Unauthorized |
+
+---
+
+### Category: Consent & DPDP Compliance
+| Method | Path | Handler | File Location | Auth | Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/consent/grant` | `grant_consent` | [`app/api/v1/consent.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/consent.py#L28) | Bearer JWT or `X-Device-ID` | 200 OK |
+| `POST` | `/api/v1/consent/revoke` | `revoke_consent` | [`app/api/v1/consent.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/consent.py#L75) | Bearer JWT or `X-Device-ID` | 200 OK |
+| `GET` | `/api/v1/consent/status` | `get_consent_status` | [`app/api/v1/consent.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/consent.py#L122) | Bearer JWT or `X-Device-ID` | 200 OK |
+| `GET` | `/api/v1/consent/audit-logs` | `get_audit_trail` | [`app/api/v1/consent.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/consent.py#L145) | Bearer JWT or `X-Device-ID` | 200 OK |
+
+---
+
+### Category: Farm Holdings & Multi-Plot Management
+| Method | Path | Handler | File Location | Auth | Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/farms` | `create_farm` | [`app/api/v1/farms.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/farms.py#L38) | Bearer JWT or `X-Device-ID` | 201 Created |
+| `GET` | `/api/v1/farms` | `list_farms` | [`app/api/v1/farms.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/farms.py#L70) | Bearer JWT or `X-Device-ID` | 200 OK |
+| `GET` | `/api/v1/farms/{farm_id}` | `get_farm` | [`app/api/v1/farms.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/farms.py#L96) | Bearer JWT or `X-Device-ID` | 200 OK / 403 Forbidden / 404 Not Found |
+| `GET` | `/api/v1/farms/{farm_id}/plots` | `get_farm_multi_plots` | [`app/api/v1/farms.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/farms.py#L112) | Bearer JWT or `X-Device-ID` | 200 OK / 403 Forbidden / 404 Not Found |
+| `DELETE` | `/api/v1/farms/{farm_id}` | `delete_farm` | [`app/api/v1/farms.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/farms.py#L137) | Bearer JWT or `X-Device-ID` | 200 OK / 403 Forbidden / 404 Not Found |
+
+---
+
 #### Detailed Route Specifications:
 
 #### `GET /api/v1/bootstrap`

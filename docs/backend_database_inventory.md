@@ -9,7 +9,7 @@
 
 ## 1. Existing Relational Schema (Physical Tables)
 
-The active database contains **7 relational tables** managed through SQLAlchemy declarative models and Alembic migrations.
+The active database contains **12 relational tables** managed through SQLAlchemy declarative models and Alembic migrations.
 
 ### Table 1: `device_profiles`
 - **Model**: `DeviceProfile` ([`app/models/profile.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/profile.py#L13))
@@ -38,7 +38,9 @@ The active database contains **7 relational tables** managed through SQLAlchemy 
 | Column Name | Data Type | Nullable | Key / Constraint | Description |
 |---|---|---|---|---|
 | `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Unique plot identifier |
-| `device_id` | `VARCHAR(128)` | **No** | **Foreign Key** (`device_profiles.device_id`), Index | Owning device UUID |
+| `farm_id` | `INTEGER` | Yes | **Foreign Key** (`farms.id`), Index | Parent farm holding |
+| `user_id` | `INTEGER` | Yes | **Foreign Key** (`users.id`), Index | Registered farmer identity |
+| `device_id` | `VARCHAR(128)` | Yes | **Foreign Key** (`device_profiles.device_id`), Index | Hardware device UUID |
 | `name` | `VARCHAR(120)` | **No** | — | Farmer-given plot name |
 | `survey_number` | `VARCHAR(64)` | Yes | — | Revenue survey number |
 | `khasra_number` | `VARCHAR(64)` | Yes | — | Land revenue Khasra number |
@@ -54,6 +56,7 @@ The active database contains **7 relational tables** managed through SQLAlchemy 
 | `updated_at` | `DATETIME` | **No** | OnUpdate: UTC now | Update timestamp |
 
 **Relationships**:
+- Many-to-One: `farm` -> `Farm`
 - Many-to-One: `device` -> `DeviceProfile`
 - One-to-Many: `crop_cycles` -> `CropCycle.plot_id` (`CASCADE`)
 - One-to-Many: `groundwater_observations` -> `GroundwaterObservation.plot_id` (`CASCADE`)
@@ -152,6 +155,99 @@ The active database contains **7 relational tables** managed through SQLAlchemy 
 
 ---
 
+### Table 8: `users`
+- **Model**: `User` ([`app/models/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/auth.py#L13))
+- **Purpose**: Registered farmer profile with encrypted PIN and multi-device association.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Unique user ID |
+| `phone_number` | `VARCHAR(20)` | **No** | **Unique**, Index | Mobile contact number |
+| `full_name` | `VARCHAR(120)` | **No** | — | Farmer full name |
+| `hashed_pin` | `VARCHAR(256)` | **No** | — | PBKDF2-HMAC-SHA256 salted PIN hash |
+| `preferred_language`| `VARCHAR(10)` | **No** | Default: `'hi'` | Language code (`hi`, `te`, `mr`, `en`) |
+| `kisan_id` | `VARCHAR(50)` | Yes | — | Government PM-KISAN ID |
+| `is_active` | `BOOLEAN` | **No** | Default: `True` | Active farmer status |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Registration timestamp |
+| `updated_at` | `DATETIME` | **No** | OnUpdate: UTC now | Update timestamp |
+
+---
+
+### Table 9: `devices`
+- **Model**: `Device` ([`app/models/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/auth.py#L38))
+- **Purpose**: Hardware device tracking, app installation version, and active session binding.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Unique device record ID |
+| `device_id` | `VARCHAR(128)` | **No** | **Unique**, Index | Hardware UUID / Client device identifier |
+| `user_id` | `INTEGER` | Yes | **Foreign Key** (`users.id`), Index | Bound farmer user |
+| `device_model` | `VARCHAR(120)` | Yes | — | Hardware device model |
+| `os_version` | `VARCHAR(64)` | Yes | — | Mobile operating system version |
+| `app_version` | `VARCHAR(64)` | Yes | — | Mobile application version |
+| `last_active_at` | `DATETIME` | **No** | OnUpdate: UTC now | Last active session timestamp |
+| `is_active` | `BOOLEAN` | **No** | Default: `True` | Active session flag |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Registration timestamp |
+
+---
+
+### Table 10: `consent_records`
+- **Model**: `ConsentRecord` ([`app/models/consent.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/consent.py#L13))
+- **Purpose**: DPDP-compliant explicit farmer consent tracking for telemetry and external data sharing.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Unique consent record ID |
+| `user_id` | `INTEGER` | Yes | **Foreign Key** (`users.id`), Index | Farmer user |
+| `device_id` | `VARCHAR(128)` | Yes | Index | Device context |
+| `purpose` | `VARCHAR(64)` | **No** | — | `IRRIGATION_ADVISORY`, `WEATHER_ALERTS`, etc. |
+| `status` | `VARCHAR(20)` | **No** | Default: `'GRANTED'` | `GRANTED`, `REVOKED`, `EXPIRED` |
+| `granted_at` | `DATETIME` | **No** | Default: UTC now | Consent grant timestamp |
+| `revoked_at` | `DATETIME` | Yes | — | Consent revocation timestamp |
+| `ip_address` | `VARCHAR(45)` | Yes | — | Client IP address |
+| `user_agent` | `VARCHAR(255)` | Yes | — | Client User-Agent string |
+
+---
+
+### Table 11: `audit_logs`
+- **Model**: `AuditLog` ([`app/models/consent.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/consent.py#L32))
+- **Purpose**: Immutable append-only audit trail recording identity, consent, and lifecycle operations.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Audit record ID |
+| `user_id` | `INTEGER` | Yes | **Foreign Key** (`users.id`), Index | Farmer user |
+| `device_id` | `VARCHAR(128)` | Yes | Index | Device identifier |
+| `action` | `VARCHAR(64)` | **No** | — | `USER_REGISTERED`, `LOGIN_SUCCESS`, `CONSENT_GRANTED`, etc. |
+| `resource_type` | `VARCHAR(64)` | **No** | — | `user`, `device`, `consent`, `farm`, `plot` |
+| `resource_id` | `VARCHAR(64)` | Yes | — | Identifier of affected resource |
+| `details` | `VARCHAR(1000)`| Yes | — | Structured JSON or summary details |
+| `ip_address` | `VARCHAR(45)` | Yes | — | Request IP address |
+| `timestamp` | `DATETIME` | **No** | Default: UTC now | Immutable event timestamp |
+
+---
+
+### Table 12: `farms`
+- **Model**: `Farm` ([`app/models/plot.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/plot.py#L14))
+- **Purpose**: Parent agricultural holding aggregating multiple contiguous or fragmented plots.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Farm holding ID |
+| `user_id` | `INTEGER` | Yes | **Foreign Key** (`users.id`), Index | Farmer owner |
+| `device_id` | `VARCHAR(128)` | Yes | **Foreign Key** (`device_profiles.device_id`), Index | Hardware device UUID |
+| `name` | `VARCHAR(120)` | **No** | — | Farm name |
+| `village` | `VARCHAR(120)` | Yes | — | Village name |
+| `subdistrict` | `VARCHAR(120)` | Yes | — | Subdistrict / Tehsil |
+| `district` | `VARCHAR(120)` | Yes | — | District name |
+| `state` | `VARCHAR(120)` | Yes | — | State name |
+| `total_area_hectares`| `FLOAT` | **No** | Default: `0.0` | Aggregated active plots acreage (ha) |
+| `is_active` | `BOOLEAN` | **No** | Default: `True` | Active status flag |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Registration timestamp |
+| `updated_at` | `DATETIME` | **No** | OnUpdate: UTC now | Update timestamp |
+
+---
+
 ## 2. Dialect Portability: `PostGISGeometry` TypeDecorator
 
 To enable seamless testing without requiring local PostGIS or SpatiaLite C-libraries, [`app/core/database.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/core/database.py#L34) implements a custom TypeDecorator:
@@ -178,8 +274,8 @@ The target enterprise architecture mandates 22 additional logical entities:
 
 | Domain | Missing Entity Models | Purpose |
 |---|---|---|
-| **Identity & Security** | `User`, `FarmerProfile`, `Device`, `ConsentRecord`, `AuditLog` | Multi-tenant authentication, DPDP consent tracking, security audit logging. |
-| **Land Hierarchy** | `Farm` | Grouping multiple fragmented plots under a single farm holding. |
+| **Identity & Security** | *Implemented in Milestone B* (`User`, `Device`, `ConsentRecord`, `AuditLog`) | Multi-tenant authentication, DPDP consent tracking, security audit logging. |
+| **Land Hierarchy** | *Implemented in Milestone B* (`Farm`) | Grouping multiple fragmented plots under a single farm holding. |
 | **Environmental Observations** | `WeatherObservation`, `WeatherForecast`, `WaterSource`, `SatelliteScene`, `SatelliteObservation`, `TerrainObservation` | Storing continuous time-series telemetry rather than transient memory snapshots. |
 | **Crop Knowledge** | `Crop`, `CropVariety`, `CropAgronomicParameters` | Database-backed versioned agronomic parameters replacing static Python dict. |
 | **Intelligence & Evaluation** | `WaterBalanceResult`, `CropHealthResult`, `YieldEstimate`, `HazardEvent` | Persisting calculation results for verification, history, and scientific audit. |

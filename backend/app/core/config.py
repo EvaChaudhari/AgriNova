@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     SUPPORTED_LANGUAGES: list[str] = ["hi", "te", "mr", "en"]
     ENVIRONMENT: str = "development"
 
+    # Security & Cryptographic Tokens
+    JWT_SECRET_KEY: str = "agrinova-insecure-dev-secret-key-for-testing-only-replace-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days validity
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

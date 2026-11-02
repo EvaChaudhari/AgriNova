@@ -20,7 +20,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api.v1 import bootstrap, chat_receptor, plots
+from app.api.v1 import auth, bootstrap, chat_receptor, consent, farms, plots
 from app.core.config import settings
 from app.core.database import Base, engine, get_db
 from app.core.exceptions import (
@@ -241,6 +241,9 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
 # ============================================================================
 
 app.include_router(bootstrap.router, prefix=settings.API_V1_STR)
+app.include_router(auth.router, prefix=settings.API_V1_STR)
+app.include_router(consent.router, prefix=settings.API_V1_STR)
+app.include_router(farms.router, prefix=settings.API_V1_STR)
 app.include_router(plots.router, prefix=settings.API_V1_STR)
 app.include_router(chat_receptor.router, prefix=settings.API_V1_STR)
 
