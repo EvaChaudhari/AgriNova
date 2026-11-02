@@ -9,7 +9,7 @@
 
 ## 1. Existing Relational Schema (Physical Tables)
 
-The active database contains **12 relational tables** managed through SQLAlchemy declarative models and Alembic migrations.
+The active database contains **17 relational tables** managed through SQLAlchemy declarative models and Alembic migrations.
 
 ### Table 1: `device_profiles`
 - **Model**: `DeviceProfile` ([`app/models/profile.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/profile.py#L13))
@@ -173,6 +173,121 @@ The active database contains **12 relational tables** managed through SQLAlchemy
 
 ---
 
+### Table 13: `weather_observations`
+- **Model**: `WeatherObservation` ([`app/models/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/observations.py#L25))
+- **Purpose**: Historical meteorological time-series records per plot.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Observation record ID |
+| `plot_id` | `INTEGER` | **No** | **Foreign Key** (`farm_plots.id`), Index | Monitored field plot |
+| `observation_time` | `DATETIME` | **No** | Index | Timestamp of weather event |
+| `temp_min_c` | `FLOAT` | **No** | — | Minimum temperature (°C) |
+| `temp_max_c` | `FLOAT` | **No** | — | Maximum temperature (°C) |
+| `temp_mean_c` | `FLOAT` | **No** | — | Mean temperature (°C) |
+| `relative_humidity_percent` | `FLOAT` | **No** | — | Relative humidity (%) |
+| `wind_speed_2m_mps` | `FLOAT` | **No** | Default: `2.0` | Wind speed at 2m (m/s) |
+| `solar_radiation_mj_m2` | `FLOAT` | **No** | Default: `18.0` | Solar radiation (MJ/m²) |
+| `rainfall_24h_mm` | `FLOAT` | **No** | Default: `0.0` | 24-hour precipitation (mm) |
+| `source` | `VARCHAR(64)` | **No** | — | `OPENWEATHERMAP`, `IMD`, `SYNTHETIC_FALLBACK` |
+| `provenance_type` | `VARCHAR(32)` | **No** | — | `MEASURED`, `SYNTHETIC_FALLBACK` |
+| `quality_score` | `FLOAT` | **No** | Default: `1.0` | Data confidence score |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Ingestion timestamp |
+
+---
+
+### Table 14: `weather_forecasts`
+- **Model**: `WeatherForecast` ([`app/models/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/observations.py#L48))
+- **Purpose**: Multi-day rolling meteorological forecast window with precipitation probabilities.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Forecast record ID |
+| `plot_id` | `INTEGER` | **No** | **Foreign Key** (`farm_plots.id`), Index | Target plot |
+| `forecast_issued_at`| `DATETIME` | **No** | — | Forecast generation timestamp |
+| `forecast_date` | `DATE` | **No** | Index | Target forecast calendar date |
+| `temp_min_c` | `FLOAT` | **No** | — | Projected min temperature (°C) |
+| `temp_max_c` | `FLOAT` | **No** | — | Projected max temperature (°C) |
+| `rainfall_mm` | `FLOAT` | **No** | Default: `0.0` | Forecasted rainfall (mm) |
+| `precipitation_probability` | `FLOAT` | **No** | Default: `0.0` | Probability of precipitation (%) |
+| `condition_code` | `VARCHAR(32)` | **No** | — | Weather condition category |
+| `condition_description` | `VARCHAR(120)` | **No** | — | Condition summary text |
+| `source` | `VARCHAR(64)` | **No** | — | Forecast data provider |
+| `provenance_type` | `VARCHAR(32)` | **No** | Default: `'FORECAST'` | Provenance indicator |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
+### Table 15: `satellite_observations`
+- **Model**: `SatelliteObservation` ([`app/models/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/observations.py#L71))
+- **Purpose**: Sentinel-2 optical spectral indices, cloud scores, and zonal statistics.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Satellite observation ID |
+| `plot_id` | `INTEGER` | **No** | **Foreign Key** (`farm_plots.id`), Index | Observed field plot |
+| `acquisition_date` | `DATE` | **No** | Index | Scene acquisition date |
+| `stac_item_id` | `VARCHAR(128)` | Yes | — | STAC catalog scene identifier |
+| `cloud_cover_percent` | `FLOAT` | **No** | Default: `0.0` | Cloud occlusion percentage over plot |
+| `mean_ndvi` | `FLOAT` | **No** | — | Zonal mean NDVI [-1.0, 1.0] |
+| `mean_ndwi` | `FLOAT` | **No** | — | Zonal mean NDWI [-1.0, 1.0] |
+| `mean_ndmi` | `FLOAT` | Yes | — | Zonal mean NDMI [-1.0, 1.0] |
+| `min_ndvi` | `FLOAT` | Yes | — | Minimum field NDVI |
+| `max_ndvi` | `FLOAT` | Yes | — | Maximum field NDVI |
+| `std_ndvi` | `FLOAT` | Yes | — | Standard deviation of NDVI |
+| `pixel_validity_count`| `INTEGER` | **No** | Default: `1` | Number of unmasked cloud-free pixels |
+| `status` | `VARCHAR(32)` | **No** | — | `MEASURED`, `CLOUD_OCCLUDED`, `SYNTHETIC_FALLBACK` |
+| `source` | `VARCHAR(64)` | **No** | — | `SENTINEL_2_L2A`, `SYNTHETIC_PHENOLOGY_MODEL` |
+| `provenance_type` | `VARCHAR(32)` | **No** | — | `DERIVED`, `SYNTHETIC_FALLBACK` |
+| `quality_score` | `FLOAT` | **No** | Default: `1.0` | Observation quality score |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Ingestion timestamp |
+
+---
+
+### Table 16: `groundwater_time_series`
+- **Model**: `GroundwaterTimeSeries` ([`app/models/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/observations.py#L101))
+- **Purpose**: India-WRIS / CGWB hydrograph time-series and 5-year depletion trends.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Record ID |
+| `plot_id` | `INTEGER` | **No** | **Foreign Key** (`farm_plots.id`), Index | Associated plot |
+| `station_id` | `VARCHAR(64)` | Yes | Index | Hydrograph station code |
+| `station_name` | `VARCHAR(120)` | Yes | — | Station name |
+| `record_date` | `DATE` | **No** | Index | Date of depth record |
+| `depth_mbgl` | `FLOAT` | **No** | — | Depth to water table (mbgl) |
+| `season_flag` | `VARCHAR(32)` | **No** | — | `PRE_MONSOON`, `POST_MONSOON`, `RABI`, `KHARIF` |
+| `five_year_decline_rate_m_yr` | `FLOAT` | Yes | — | 5-year water table trend (m/year) |
+| `distance_km` | `FLOAT` | Yes | — | Distance from plot centroid (km) |
+| `source` | `VARCHAR(64)` | **No** | — | `INDIA_WRIS`, `CGWB`, `FALLBACK_DISTRICT` |
+| `provenance_type` | `VARCHAR(32)` | **No** | — | `MEASURED`, `SYNTHETIC_FALLBACK` |
+| `quality_score` | `FLOAT` | **No** | Default: `1.0` | Quality confidence score |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Ingestion timestamp |
+
+---
+
+### Table 17: `terrain_topography`
+- **Model**: `TerrainTopography` ([`app/models/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/observations.py#L129))
+- **Purpose**: DEM slope, Topographic Wetness Index (TWI), and erosion hazard classification.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Record ID |
+| `plot_id` | `INTEGER` | **No** | **Foreign Key** (`farm_plots.id`), **Unique**, Index | Field plot |
+| `elevation_m` | `FLOAT` | **No** | Default: `250.0` | Elevation above MSL (m) |
+| `slope_percent` | `FLOAT` | **No** | Default: `1.5` | Terrain slope percentage (%) |
+| `slope_degrees` | `FLOAT` | **No** | Default: `0.86` | Terrain slope angle (degrees) |
+| `aspect_degrees`| `FLOAT` | Yes | — | Aspect orientation |
+| `twi` | `FLOAT` | **No** | Default: `6.5` | Topographic Wetness Index |
+| `erosion_hazard`| `VARCHAR(64)` | **No** | Default: `'STABLE'` | `HIGH_EROSION_RISK`, `WATERLOGGING_SUSCEPTIBLE`, `STABLE` |
+| `actionable_directive` | `VARCHAR(255)` | Yes | — | In-field agronomic soil directive |
+| `source` | `VARCHAR(64)` | **No** | — | `SRTM_DEM`, `COPERNICUS_DEM`, `HYPSOMETRIC_FALLBACK` |
+| `provenance_type` | `VARCHAR(32)` | **No** | — | `DERIVED`, `SYNTHETIC_FALLBACK` |
+| `quality_score` | `FLOAT` | **No** | Default: `1.0` | Model confidence score |
+| `calculated_at` | `DATETIME` | **No** | Default: UTC now | Calculation timestamp |
+
+---
+
 ### Table 9: `devices`
 - **Model**: `Device` ([`app/models/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/auth.py#L38))
 - **Purpose**: Hardware device tracking, app installation version, and active session binding.
@@ -248,6 +363,121 @@ The active database contains **12 relational tables** managed through SQLAlchemy
 
 ---
 
+### Table 13: `weather_observations`
+- **Model**: `WeatherObservation` ([`app/models/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/observations.py#L25))
+- **Purpose**: Historical meteorological time-series records per plot.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Observation record ID |
+| `plot_id` | `INTEGER` | **No** | **Foreign Key** (`farm_plots.id`), Index | Monitored field plot |
+| `observation_time` | `DATETIME` | **No** | Index | Timestamp of weather event |
+| `temp_min_c` | `FLOAT` | **No** | — | Minimum temperature (°C) |
+| `temp_max_c` | `FLOAT` | **No** | — | Maximum temperature (°C) |
+| `temp_mean_c` | `FLOAT` | **No** | — | Mean temperature (°C) |
+| `relative_humidity_percent` | `FLOAT` | **No** | — | Relative humidity (%) |
+| `wind_speed_2m_mps` | `FLOAT` | **No** | Default: `2.0` | Wind speed at 2m (m/s) |
+| `solar_radiation_mj_m2` | `FLOAT` | **No** | Default: `18.0` | Solar radiation (MJ/m²) |
+| `rainfall_24h_mm` | `FLOAT` | **No** | Default: `0.0` | 24-hour precipitation (mm) |
+| `source` | `VARCHAR(64)` | **No** | — | `OPENWEATHERMAP`, `IMD`, `SYNTHETIC_FALLBACK` |
+| `provenance_type` | `VARCHAR(32)` | **No** | — | `MEASURED`, `SYNTHETIC_FALLBACK` |
+| `quality_score` | `FLOAT` | **No** | Default: `1.0` | Data confidence score |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Ingestion timestamp |
+
+---
+
+### Table 14: `weather_forecasts`
+- **Model**: `WeatherForecast` ([`app/models/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/observations.py#L48))
+- **Purpose**: Multi-day rolling meteorological forecast window with precipitation probabilities.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Forecast record ID |
+| `plot_id` | `INTEGER` | **No** | **Foreign Key** (`farm_plots.id`), Index | Target plot |
+| `forecast_issued_at`| `DATETIME` | **No** | — | Forecast generation timestamp |
+| `forecast_date` | `DATE` | **No** | Index | Target forecast calendar date |
+| `temp_min_c` | `FLOAT` | **No** | — | Projected min temperature (°C) |
+| `temp_max_c` | `FLOAT` | **No** | — | Projected max temperature (°C) |
+| `rainfall_mm` | `FLOAT` | **No** | Default: `0.0` | Forecasted rainfall (mm) |
+| `precipitation_probability` | `FLOAT` | **No** | Default: `0.0` | Probability of precipitation (%) |
+| `condition_code` | `VARCHAR(32)` | **No** | — | Weather condition category |
+| `condition_description` | `VARCHAR(120)` | **No** | — | Condition summary text |
+| `source` | `VARCHAR(64)` | **No** | — | Forecast data provider |
+| `provenance_type` | `VARCHAR(32)` | **No** | Default: `'FORECAST'` | Provenance indicator |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
+### Table 15: `satellite_observations`
+- **Model**: `SatelliteObservation` ([`app/models/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/observations.py#L71))
+- **Purpose**: Sentinel-2 optical spectral indices, cloud scores, and zonal statistics.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Satellite observation ID |
+| `plot_id` | `INTEGER` | **No** | **Foreign Key** (`farm_plots.id`), Index | Observed field plot |
+| `acquisition_date` | `DATE` | **No** | Index | Scene acquisition date |
+| `stac_item_id` | `VARCHAR(128)` | Yes | — | STAC catalog scene identifier |
+| `cloud_cover_percent` | `FLOAT` | **No** | Default: `0.0` | Cloud occlusion percentage over plot |
+| `mean_ndvi` | `FLOAT` | **No** | — | Zonal mean NDVI [-1.0, 1.0] |
+| `mean_ndwi` | `FLOAT` | **No** | — | Zonal mean NDWI [-1.0, 1.0] |
+| `mean_ndmi` | `FLOAT` | Yes | — | Zonal mean NDMI [-1.0, 1.0] |
+| `min_ndvi` | `FLOAT` | Yes | — | Minimum field NDVI |
+| `max_ndvi` | `FLOAT` | Yes | — | Maximum field NDVI |
+| `std_ndvi` | `FLOAT` | Yes | — | Standard deviation of NDVI |
+| `pixel_validity_count`| `INTEGER` | **No** | Default: `1` | Number of unmasked cloud-free pixels |
+| `status` | `VARCHAR(32)` | **No** | — | `MEASURED`, `CLOUD_OCCLUDED`, `SYNTHETIC_FALLBACK` |
+| `source` | `VARCHAR(64)` | **No** | — | `SENTINEL_2_L2A`, `SYNTHETIC_PHENOLOGY_MODEL` |
+| `provenance_type` | `VARCHAR(32)` | **No** | — | `DERIVED`, `SYNTHETIC_FALLBACK` |
+| `quality_score` | `FLOAT` | **No** | Default: `1.0` | Observation quality score |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Ingestion timestamp |
+
+---
+
+### Table 16: `groundwater_time_series`
+- **Model**: `GroundwaterTimeSeries` ([`app/models/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/observations.py#L101))
+- **Purpose**: India-WRIS / CGWB hydrograph time-series and 5-year depletion trends.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Record ID |
+| `plot_id` | `INTEGER` | **No** | **Foreign Key** (`farm_plots.id`), Index | Associated plot |
+| `station_id` | `VARCHAR(64)` | Yes | Index | Hydrograph station code |
+| `station_name` | `VARCHAR(120)` | Yes | — | Station name |
+| `record_date` | `DATE` | **No** | Index | Date of depth record |
+| `depth_mbgl` | `FLOAT` | **No** | — | Depth to water table (mbgl) |
+| `season_flag` | `VARCHAR(32)` | **No** | — | `PRE_MONSOON`, `POST_MONSOON`, `RABI`, `KHARIF` |
+| `five_year_decline_rate_m_yr` | `FLOAT` | Yes | — | 5-year water table trend (m/year) |
+| `distance_km` | `FLOAT` | Yes | — | Distance from plot centroid (km) |
+| `source` | `VARCHAR(64)` | **No** | — | `INDIA_WRIS`, `CGWB`, `FALLBACK_DISTRICT` |
+| `provenance_type` | `VARCHAR(32)` | **No** | — | `MEASURED`, `SYNTHETIC_FALLBACK` |
+| `quality_score` | `FLOAT` | **No** | Default: `1.0` | Quality confidence score |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Ingestion timestamp |
+
+---
+
+### Table 17: `terrain_topography`
+- **Model**: `TerrainTopography` ([`app/models/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/observations.py#L129))
+- **Purpose**: DEM slope, Topographic Wetness Index (TWI), and erosion hazard classification.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Record ID |
+| `plot_id` | `INTEGER` | **No** | **Foreign Key** (`farm_plots.id`), **Unique**, Index | Field plot |
+| `elevation_m` | `FLOAT` | **No** | Default: `250.0` | Elevation above MSL (m) |
+| `slope_percent` | `FLOAT` | **No** | Default: `1.5` | Terrain slope percentage (%) |
+| `slope_degrees` | `FLOAT` | **No** | Default: `0.86` | Terrain slope angle (degrees) |
+| `aspect_degrees`| `FLOAT` | Yes | — | Aspect orientation |
+| `twi` | `FLOAT` | **No** | Default: `6.5` | Topographic Wetness Index |
+| `erosion_hazard`| `VARCHAR(64)` | **No** | Default: `'STABLE'` | `HIGH_EROSION_RISK`, `WATERLOGGING_SUSCEPTIBLE`, `STABLE` |
+| `actionable_directive` | `VARCHAR(255)` | Yes | — | In-field agronomic soil directive |
+| `source` | `VARCHAR(64)` | **No** | — | `SRTM_DEM`, `COPERNICUS_DEM`, `HYPSOMETRIC_FALLBACK` |
+| `provenance_type` | `VARCHAR(32)` | **No** | — | `DERIVED`, `SYNTHETIC_FALLBACK` |
+| `quality_score` | `FLOAT` | **No** | Default: `1.0` | Model confidence score |
+| `calculated_at` | `DATETIME` | **No** | Default: UTC now | Calculation timestamp |
+
+---
+
 ## 2. Dialect Portability: `PostGISGeometry` TypeDecorator
 
 To enable seamless testing without requiring local PostGIS or SpatiaLite C-libraries, [`app/core/database.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/core/database.py#L34) implements a custom TypeDecorator:
@@ -276,7 +506,7 @@ The target enterprise architecture mandates 22 additional logical entities:
 |---|---|---|
 | **Identity & Security** | *Implemented in Milestone B* (`User`, `Device`, `ConsentRecord`, `AuditLog`) | Multi-tenant authentication, DPDP consent tracking, security audit logging. |
 | **Land Hierarchy** | *Implemented in Milestone B* (`Farm`) | Grouping multiple fragmented plots under a single farm holding. |
-| **Environmental Observations** | `WeatherObservation`, `WeatherForecast`, `WaterSource`, `SatelliteScene`, `SatelliteObservation`, `TerrainObservation` | Storing continuous time-series telemetry rather than transient memory snapshots. |
+| **Environmental Observations** | *Implemented in Milestone C* (`WeatherObservation`, `WeatherForecast`, `SatelliteObservation`, `GroundwaterTimeSeries`, `TerrainTopography`) | Storing continuous time-series telemetry and spatial terrain metrics. |
 | **Crop Knowledge** | `Crop`, `CropVariety`, `CropAgronomicParameters` | Database-backed versioned agronomic parameters replacing static Python dict. |
 | **Intelligence & Evaluation** | `WaterBalanceResult`, `CropHealthResult`, `YieldEstimate`, `HazardEvent` | Persisting calculation results for verification, history, and scientific audit. |
 | **Farmer Workflows** | `CropPlan`, `RoadmapCheckpoint`, `Notification`, `SyncOperation` | Enabling crop planner, milestone trackers, push notifications, and offline sync. |

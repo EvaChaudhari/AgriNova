@@ -18,18 +18,18 @@
 
 | Module ID | Module Name | Status | Existing Files | Tests Passing | Primary Gap |
 |---|---|---|---|---|---|
-| **M00** | Repository Foundation | `IMPLEMENTED` | `main.py`, `config.py`, `database.py`, `exceptions.py`, `logging.py` | 45/45 pass | Milestone A complete: /health, /ready, structured logging, RFC 7807 |
-| **M01** | Shared Contracts | `IMPLEMENTED` | `schemas/common.py`, `schemas/*.py` | 45/45 pass | RFC 7807 ProblemDetails, ProvenanceMetadata, ObservationEnvelope |
-| **M02** | Database and Storage | `IMPLEMENTED` | `core/database.py`, `models/*.py`, `alembic/` | 45/45 pass | 12 tables exist across auth, consent, farms, plots, telemetry, chat |
-| **M03** | Identity and Consent | `IMPLEMENTED` | `core/security.py`, `core/auth.py`, `models/auth.py`, `models/consent.py`, `api/v1/auth.py`, `api/v1/consent.py` | 45/45 pass | Milestone B complete: PBKDF2 PIN hashing, JWT tokens, dual-mode auth, DPDP consent, audit logs |
-| **M04** | Farmer & Plot Registry | `IMPLEMENTED` | `models/plot.py`, `schemas/farm.py`, `api/v1/farms.py`, `api/v1/plots.py` | 45/45 pass | Milestone B complete: Parent Farm entity, concurrent multi-plot support, acreage aggregation |
+| **M00** | Repository Foundation | `IMPLEMENTED` | `main.py`, `config.py`, `database.py`, `exceptions.py`, `logging.py` | 64/64 pass | Milestone A complete: /health, /ready, structured logging, RFC 7807 |
+| **M01** | Shared Contracts | `IMPLEMENTED` | `schemas/common.py`, `schemas/observations.py`, `schemas/*.py` | 64/64 pass | RFC 7807 ProblemDetails, ProvenanceMetadata, StandardObservationEnvelope |
+| **M02** | Database and Storage | `IMPLEMENTED` | `core/database.py`, `models/*.py`, `repositories/*.py`, `alembic/` | 64/64 pass | 17 tables; repository layer decoupling ORM queries from API endpoints |
+| **M03** | Identity and Consent | `IMPLEMENTED` | `core/security.py`, `core/auth.py`, `models/auth.py`, `models/consent.py`, `api/v1/auth.py`, `api/v1/consent.py` | 64/64 pass | Milestone B complete: PBKDF2 PIN hashing, JWT tokens, dual-mode auth, DPDP consent, audit logs |
+| **M04** | Farmer & Plot Registry | `IMPLEMENTED` | `models/plot.py`, `schemas/farm.py`, `api/v1/farms.py`, `api/v1/plots.py`, `repositories/plot_repository.py` | 64/64 pass | Milestone B complete: Parent Farm entity, concurrent multi-plot support, acreage aggregation |
 | **S0** | Reference Geography | `PARTIALLY IMPLEMENTED` | `services/fallback_data.py` | Indirectly tested | Hardcoded district dictionary; missing formal admin hierarchy |
 | **S1** | Farmer & Plot Onboarding | `FUNCTIONALLY INTEGRATED` | `api/v1/bootstrap.py`, `api/v1/plots.py` | 4/4 pass | Tightly coupled to device_id; consent workflow not integrated |
 | **S2** | Soil Intelligence | `FUNCTIONALLY INTEGRATED` | `models/telemetry.py`, `services/fallback_data.py` | 2/2 pass | Telemetry stored; automated SHC API fetch missing |
-| **S3** | Weather & Climate | `DATA-CONNECTED` | `services/weather_service.py` | 1/1 pass | Current weather only; missing multi-day forecast storage |
-| **S4** | Water Resources | `FUNCTIONALLY INTEGRATED` | `models/telemetry.py`, `services/fallback_data.py` | 2/2 pass | Groundwater depth tracked; surface water & India-WRIS automated scraper missing |
-| **S5** | Satellite Processing | `PARTIALLY IMPLEMENTED` | `engines/satellite_stac.py` | 1/1 pass | STAC search functional; raster clipping missing (synthetic curve substituted) |
-| **S6** | Terrain & Hydrology | `PARTIALLY IMPLEMENTED` | `models/plot.py`, `engines/hazard_state.py` | 1/1 pass | Slope/elevation stored on plot; automated DEM raster query missing |
+| **S3** | Weather & Climate | `IMPLEMENTED` | `services/weather_ingestion.py`, `models/observations.py`, `api/v1/observations.py` | 64/64 pass | Milestone C complete: Multi-day rolling forecasts, 24h/72h rainfall accumulation, storm triggers |
+| **S4** | Water Resources | `IMPLEMENTED` | `services/wris_service.py`, `models/observations.py`, `api/v1/observations.py` | 64/64 pass | Milestone C complete: India-WRIS station hydrographs, 5-yr decline rate, drought indicators |
+| **S5** | Satellite Processing | `IMPLEMENTED` | `engines/satellite_processor.py`, `models/observations.py`, `api/v1/observations.py` | 64/64 pass | Milestone C complete: Sentinel-2 zonal statistics, SCL cloud masking, phenology fallback |
+| **S6** | Terrain & Hydrology | `IMPLEMENTED` | `engines/terrain_engine.py`, `models/observations.py`, `api/v1/observations.py` | 64/64 pass | Milestone C complete: DEM slope %, degrees, TWI, erosion risk classification, regional hypsometric fallback |
 | **S7** | Crop Knowledge Base | `PARTIALLY IMPLEMENTED` | `services/fallback_data.py` | 7/7 pass | Hardcoded dictionary for 7 crops; database-backed versioning missing |
 | **S8** | Water Balance & Irrigation | `SCIENTIFICALLY EVALUATED` | `engines/fao56_hydrology.py` | 7/7 pass | Complete FAO-56 Penman-Monteith implementation; soil moisture sensor feed missing |
 | **S9** | Crop Health & Yield | `PARTIALLY IMPLEMENTED` | `services/vision_service.py` | 1/1 pass | CIB leaf disease validator working; quantitative yield estimation missing |

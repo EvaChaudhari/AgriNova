@@ -76,6 +76,16 @@ Below is the exhaustive catalog of every active route currently implemented in t
 
 ---
 
+### Category: Environmental Observations & Spatial Ingestion (Milestone C)
+| Method | Path | Handler | File Location | Auth | Status |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/plots/{plot_id}/weather/history` | `get_plot_weather_history` | [`app/api/v1/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/observations.py#L42) | None / Dual-Mode | 200 OK / 404 Not Found |
+| `GET` | `/api/v1/plots/{plot_id}/satellite/timeseries` | `get_plot_satellite_timeseries` | [`app/api/v1/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/observations.py#L94) | None / Dual-Mode | 200 OK / 404 Not Found |
+| `GET` | `/api/v1/plots/{plot_id}/terrain` | `get_plot_terrain` | [`app/api/v1/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/observations.py#L152) | None / Dual-Mode | 200 OK / 404 Not Found |
+| `POST` | `/api/v1/plots/{plot_id}/sync-environmental` | `sync_plot_environmental_data` | [`app/api/v1/observations.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/observations.py#L173) | None / Dual-Mode | 200 OK / 404 Not Found |
+
+---
+
 #### Detailed Route Specifications:
 
 #### `GET /api/v1/bootstrap`

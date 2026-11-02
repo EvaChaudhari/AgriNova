@@ -20,7 +20,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api.v1 import auth, bootstrap, chat_receptor, consent, farms, plots
+from app.api.v1 import auth, bootstrap, chat_receptor, consent, farms, observations, plots
 from app.core.config import settings
 from app.core.database import Base, engine, get_db
 from app.core.exceptions import (
@@ -245,6 +245,7 @@ app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(consent.router, prefix=settings.API_V1_STR)
 app.include_router(farms.router, prefix=settings.API_V1_STR)
 app.include_router(plots.router, prefix=settings.API_V1_STR)
+app.include_router(observations.router, prefix=settings.API_V1_STR)
 app.include_router(chat_receptor.router, prefix=settings.API_V1_STR)
 
 

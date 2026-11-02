@@ -6,6 +6,13 @@ from app.models.consent import ConsentRecord, AuditLog
 from app.models.plot import Farm, FarmPlot, CropCycle
 from app.models.telemetry import GroundwaterObservation, SoilHealthRecord
 from app.models.chat import ChatSession, ChatMessage
+from app.models.observations import (
+    WeatherObservation,
+    WeatherForecast,
+    SatelliteObservation,
+    GroundwaterTimeSeries,
+    TerrainTopography,
+)
 
 __all__ = [
     "DeviceProfile",
@@ -20,4 +27,9 @@ __all__ = [
     "SoilHealthRecord",
     "ChatSession",
     "ChatMessage",
+    "WeatherObservation",
+    "WeatherForecast",
+    "SatelliteObservation",
+    "GroundwaterTimeSeries",
+    "TerrainTopography",
 ]

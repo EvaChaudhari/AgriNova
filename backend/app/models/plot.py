@@ -71,6 +71,11 @@ class FarmPlot(Base):
     crop_cycles = relationship("CropCycle", back_populates="plot", cascade="all, delete-orphan")
     groundwater_observations = relationship("GroundwaterObservation", back_populates="plot", cascade="all, delete-orphan")
     soil_health_records = relationship("SoilHealthRecord", back_populates="plot", cascade="all, delete-orphan")
+    weather_observations = relationship("WeatherObservation", back_populates="plot", cascade="all, delete-orphan")
+    weather_forecasts = relationship("WeatherForecast", back_populates="plot", cascade="all, delete-orphan")
+    satellite_observations = relationship("SatelliteObservation", back_populates="plot", cascade="all, delete-orphan")
+    groundwater_records = relationship("GroundwaterTimeSeries", back_populates="plot", cascade="all, delete-orphan")
+    terrain = relationship("TerrainTopography", back_populates="plot", uselist=False, cascade="all, delete-orphan")
 
 
 class CropCycle(Base):
