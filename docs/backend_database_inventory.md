@@ -9,7 +9,7 @@
 
 ## 1. Existing Relational Schema (Physical Tables)
 
-The active database contains **17 relational tables** managed through SQLAlchemy declarative models and Alembic migrations.
+The active database contains **22 relational tables** managed through SQLAlchemy declarative models and Alembic migrations.
 
 ### Table 1: `device_profiles`
 - **Model**: `DeviceProfile` ([`app/models/profile.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/profile.py#L13))
@@ -288,6 +288,102 @@ The active database contains **17 relational tables** managed through SQLAlchemy
 
 ---
 
+### Table 18: `crops`
+- **Model**: `Crop` ([`app/models/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/crop_knowledge.py#L24))
+- **Purpose**: Master crop taxonomy, seasonal classification, and duration.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Crop identifier |
+| `name` | `VARCHAR(80)` | **No** | **Unique**, Index | Common name (e.g. Cotton, Paddy, Wheat) |
+| `scientific_name` | `VARCHAR(120)` | **No** | — | Botanical binomial name |
+| `season` | `VARCHAR(32)` | **No** | — | Agricultural season (`KHARIF`, `RABI`, `ZAID`) |
+| `category` | `VARCHAR(32)` | **No** | — | Category (`CEREAL`, `PULSE`, `OILSEED`, `FIBRE`, `CASH`) |
+| `standard_duration_days` | `INTEGER` | **No** | Default: `120` | Reference growing duration (days) |
+| `is_active` | `BOOLEAN` | **No** | Default: `True` | Active taxonomy status |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
+### Table 19: `crop_varieties`
+- **Model**: `CropVariety` ([`app/models/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/crop_knowledge.py#L59))
+- **Purpose**: Cultivar varieties, duration, stress tolerances, and yield potentials.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Variety identifier |
+| `crop_id` | `INTEGER` | **No** | **Foreign Key** (`crops.id`), Index | Parent crop |
+| `variety_name` | `VARCHAR(120)` | **No** | Index | Cultivar or hybrid name (e.g. Bt Cotton RCH-2) |
+| `duration_days` | `INTEGER` | **No** | — | Maturity duration (days) |
+| `drought_tolerance` | `VARCHAR(32)` | **No** | Default: `'MEDIUM'` | `LOW`, `MEDIUM`, `HIGH` |
+| `flood_tolerance` | `VARCHAR(32)` | **No** | Default: `'LOW'` | `LOW`, `MEDIUM`, `HIGH` |
+| `potential_yield_q_ha` | `FLOAT` | **No** | — | Potential maximum yield (quintals/ha) |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
+### Table 20: `crop_growth_stages`
+- **Model**: `CropGrowthStage` ([`app/models/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/crop_knowledge.py#L78))
+- **Purpose**: FAO-56 phenological growth stage parameters ($K_c$, $Z_r$, $p$, $K_y$, critical water flags).
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Growth stage identifier |
+| `crop_id` | `INTEGER` | **No** | **Foreign Key** (`crops.id`), Index | Parent crop |
+| `stage_name` | `VARCHAR(64)` | **No** | — | `INITIAL`, `VEGETATIVE`, `FLOWERING`, `MATURITY` |
+| `start_das` | `INTEGER` | **No** | — | Starting Day After Sowing (DAS) |
+| `end_das` | `INTEGER` | **No** | — | Ending Day After Sowing (DAS) |
+| `kc` | `FLOAT` | **No** | — | FAO-56 crop coefficient $K_c$ |
+| `rooting_depth_m` | `FLOAT` | **No** | — | Effective rooting depth $Z_r$ (m) |
+| `depletion_fraction_p` | `FLOAT` | **No** | — | Depletion fraction without water stress $p$ |
+| `ky` | `FLOAT` | **No** | — | Yield response factor $K_y$ |
+| `critical_water_stage` | `BOOLEAN` | **No** | Default: `False` | Drought/moisture sensitive flag |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
+### Table 21: `crop_nutrient_benchmarks`
+- **Model**: `CropNutrientBenchmark` ([`app/models/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/crop_knowledge.py#L104))
+- **Purpose**: ICAR STCR targeted yield equation coefficients and maximum safe chemical limits.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Benchmark identifier |
+| `crop_id` | `INTEGER` | **No** | **Foreign Key** (`crops.id`), **Unique**, Index | Associated crop |
+| `stcr_a_n` | `FLOAT` | **No** | — | Target yield multiplier for N ($A_n$) |
+| `stcr_b_n` | `FLOAT` | **No** | — | Soil test subtraction coefficient for N ($B_n$) |
+| `stcr_a_p` | `FLOAT` | **No** | — | Target yield multiplier for P ($A_p$) |
+| `stcr_b_p` | `FLOAT` | **No** | — | Soil test subtraction coefficient for P ($B_p$) |
+| `stcr_a_k` | `FLOAT` | **No** | — | Target yield multiplier for K ($A_k$) |
+| `stcr_b_k` | `FLOAT` | **No** | — | Soil test subtraction coefficient for K ($B_k$) |
+| `max_n_kg_ha` | `FLOAT` | **No** | Default: `200.0` | ICAR safe upper bound for Nitrogen |
+| `max_p_kg_ha` | `FLOAT` | **No** | Default: `100.0` | ICAR safe upper bound for Phosphorus |
+| `max_k_kg_ha` | `FLOAT` | **No** | Default: `100.0` | ICAR safe upper bound for Potassium |
+| `target_yield_default_q_ha` | `FLOAT` | **No** | Default: `25.0` | Standard regional target yield (q/ha) |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
+### Table 22: `crop_pest_profiles`
+- **Model**: `CropPestProfile` ([`app/models/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/crop_knowledge.py#L125))
+- **Purpose**: CIB&RC approved integrated pest management (IPM) guidelines, economic threshold levels (ETL), and stage links.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Pest profile record ID |
+| `crop_id` | `INTEGER` | **No** | **Foreign Key** (`crops.id`), Index | Host crop |
+| `pest_name` | `VARCHAR(160)` | **No** | Index | Pest or disease name with scientific binomial |
+| `pest_type` | `VARCHAR(32)` | **No** | — | `INSECT`, `FUNGAL`, `BACTERIAL`, `VIRAL`, `WEED` |
+| `affected_growth_stage` | `VARCHAR(64)` | **No** | Default: `'ALL'` | Growth stage when pest manifests |
+| `symptoms` | `TEXT` | **No** | — | Visual diagnostic symptoms |
+| `economic_threshold_etl` | `TEXT` | **No** | — | Action threshold (e.g. 1 larva/meter) |
+| `ipm_practice` | `TEXT` | **No** | — | Biological / cultural IPM measures |
+| `approved_chemical` | `TEXT` | Yes | — | CIB&RC certified pesticide active ingredient |
+| `cib_restriction` | `TEXT` | Yes | — | Safety interval and application restrictions |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
 ### Table 9: `devices`
 - **Model**: `Device` ([`app/models/auth.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/auth.py#L38))
 - **Purpose**: Hardware device tracking, app installation version, and active session binding.
@@ -478,6 +574,102 @@ The active database contains **17 relational tables** managed through SQLAlchemy
 
 ---
 
+### Table 18: `crops`
+- **Model**: `Crop` ([`app/models/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/crop_knowledge.py#L24))
+- **Purpose**: Master crop taxonomy, seasonal classification, and duration.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Crop identifier |
+| `name` | `VARCHAR(80)` | **No** | **Unique**, Index | Common name (e.g. Cotton, Paddy, Wheat) |
+| `scientific_name` | `VARCHAR(120)` | **No** | — | Botanical binomial name |
+| `season` | `VARCHAR(32)` | **No** | — | Agricultural season (`KHARIF`, `RABI`, `ZAID`) |
+| `category` | `VARCHAR(32)` | **No** | — | Category (`CEREAL`, `PULSE`, `OILSEED`, `FIBRE`, `CASH`) |
+| `standard_duration_days` | `INTEGER` | **No** | Default: `120` | Reference growing duration (days) |
+| `is_active` | `BOOLEAN` | **No** | Default: `True` | Active taxonomy status |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
+### Table 19: `crop_varieties`
+- **Model**: `CropVariety` ([`app/models/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/crop_knowledge.py#L59))
+- **Purpose**: Cultivar varieties, duration, stress tolerances, and yield potentials.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Variety identifier |
+| `crop_id` | `INTEGER` | **No** | **Foreign Key** (`crops.id`), Index | Parent crop |
+| `variety_name` | `VARCHAR(120)` | **No** | Index | Cultivar or hybrid name (e.g. Bt Cotton RCH-2) |
+| `duration_days` | `INTEGER` | **No** | — | Maturity duration (days) |
+| `drought_tolerance` | `VARCHAR(32)` | **No** | Default: `'MEDIUM'` | `LOW`, `MEDIUM`, `HIGH` |
+| `flood_tolerance` | `VARCHAR(32)` | **No** | Default: `'LOW'` | `LOW`, `MEDIUM`, `HIGH` |
+| `potential_yield_q_ha` | `FLOAT` | **No** | — | Potential maximum yield (quintals/ha) |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
+### Table 20: `crop_growth_stages`
+- **Model**: `CropGrowthStage` ([`app/models/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/crop_knowledge.py#L78))
+- **Purpose**: FAO-56 phenological growth stage parameters ($K_c$, $Z_r$, $p$, $K_y$, critical water flags).
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Growth stage identifier |
+| `crop_id` | `INTEGER` | **No** | **Foreign Key** (`crops.id`), Index | Parent crop |
+| `stage_name` | `VARCHAR(64)` | **No** | — | `INITIAL`, `VEGETATIVE`, `FLOWERING`, `MATURITY` |
+| `start_das` | `INTEGER` | **No** | — | Starting Day After Sowing (DAS) |
+| `end_das` | `INTEGER` | **No** | — | Ending Day After Sowing (DAS) |
+| `kc` | `FLOAT` | **No** | — | FAO-56 crop coefficient $K_c$ |
+| `rooting_depth_m` | `FLOAT` | **No** | — | Effective rooting depth $Z_r$ (m) |
+| `depletion_fraction_p` | `FLOAT` | **No** | — | Depletion fraction without water stress $p$ |
+| `ky` | `FLOAT` | **No** | — | Yield response factor $K_y$ |
+| `critical_water_stage` | `BOOLEAN` | **No** | Default: `False` | Drought/moisture sensitive flag |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
+### Table 21: `crop_nutrient_benchmarks`
+- **Model**: `CropNutrientBenchmark` ([`app/models/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/crop_knowledge.py#L104))
+- **Purpose**: ICAR STCR targeted yield equation coefficients and maximum safe chemical limits.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Benchmark identifier |
+| `crop_id` | `INTEGER` | **No** | **Foreign Key** (`crops.id`), **Unique**, Index | Associated crop |
+| `stcr_a_n` | `FLOAT` | **No** | — | Target yield multiplier for N ($A_n$) |
+| `stcr_b_n` | `FLOAT` | **No** | — | Soil test subtraction coefficient for N ($B_n$) |
+| `stcr_a_p` | `FLOAT` | **No** | — | Target yield multiplier for P ($A_p$) |
+| `stcr_b_p` | `FLOAT` | **No** | — | Soil test subtraction coefficient for P ($B_p$) |
+| `stcr_a_k` | `FLOAT` | **No** | — | Target yield multiplier for K ($A_k$) |
+| `stcr_b_k` | `FLOAT` | **No** | — | Soil test subtraction coefficient for K ($B_k$) |
+| `max_n_kg_ha` | `FLOAT` | **No** | Default: `200.0` | ICAR safe upper bound for Nitrogen |
+| `max_p_kg_ha` | `FLOAT` | **No** | Default: `100.0` | ICAR safe upper bound for Phosphorus |
+| `max_k_kg_ha` | `FLOAT` | **No** | Default: `100.0` | ICAR safe upper bound for Potassium |
+| `target_yield_default_q_ha` | `FLOAT` | **No** | Default: `25.0` | Standard regional target yield (q/ha) |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
+### Table 22: `crop_pest_profiles`
+- **Model**: `CropPestProfile` ([`app/models/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/crop_knowledge.py#L125))
+- **Purpose**: CIB&RC approved integrated pest management (IPM) guidelines, economic threshold levels (ETL), and stage links.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Pest profile record ID |
+| `crop_id` | `INTEGER` | **No** | **Foreign Key** (`crops.id`), Index | Host crop |
+| `pest_name` | `VARCHAR(160)` | **No** | Index | Pest or disease name with scientific binomial |
+| `pest_type` | `VARCHAR(32)` | **No** | — | `INSECT`, `FUNGAL`, `BACTERIAL`, `VIRAL`, `WEED` |
+| `affected_growth_stage` | `VARCHAR(64)` | **No** | Default: `'ALL'` | Growth stage when pest manifests |
+| `symptoms` | `TEXT` | **No** | — | Visual diagnostic symptoms |
+| `economic_threshold_etl` | `TEXT` | **No** | — | Action threshold (e.g. 1 larva/meter) |
+| `ipm_practice` | `TEXT` | **No** | — | Biological / cultural IPM measures |
+| `approved_chemical` | `TEXT` | Yes | — | CIB&RC certified pesticide active ingredient |
+| `cib_restriction` | `TEXT` | Yes | — | Safety interval and application restrictions |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
 ## 2. Dialect Portability: `PostGISGeometry` TypeDecorator
 
 To enable seamless testing without requiring local PostGIS or SpatiaLite C-libraries, [`app/core/database.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/core/database.py#L34) implements a custom TypeDecorator:
@@ -507,7 +699,7 @@ The target enterprise architecture mandates 22 additional logical entities:
 | **Identity & Security** | *Implemented in Milestone B* (`User`, `Device`, `ConsentRecord`, `AuditLog`) | Multi-tenant authentication, DPDP consent tracking, security audit logging. |
 | **Land Hierarchy** | *Implemented in Milestone B* (`Farm`) | Grouping multiple fragmented plots under a single farm holding. |
 | **Environmental Observations** | *Implemented in Milestone C* (`WeatherObservation`, `WeatherForecast`, `SatelliteObservation`, `GroundwaterTimeSeries`, `TerrainTopography`) | Storing continuous time-series telemetry and spatial terrain metrics. |
-| **Crop Knowledge** | `Crop`, `CropVariety`, `CropAgronomicParameters` | Database-backed versioned agronomic parameters replacing static Python dict. |
+| **Crop Knowledge** | *Implemented in Milestone D* (`Crop`, `CropVariety`, `CropGrowthStage`, `CropNutrientBenchmark`, `CropPestProfile`) | Database-backed versioned agronomic knowledge, varieties, FAO-56 stages, STCR equations, and IPM pest profiles. |
 | **Intelligence & Evaluation** | `WaterBalanceResult`, `CropHealthResult`, `YieldEstimate`, `HazardEvent` | Persisting calculation results for verification, history, and scientific audit. |
 | **Farmer Workflows** | `CropPlan`, `RoadmapCheckpoint`, `Notification`, `SyncOperation` | Enabling crop planner, milestone trackers, push notifications, and offline sync. |
 | **Data Platform Governance** | `DatasetSource`, `IngestionRun` | Tracking provenance, data freshness, and ingestion quality metrics. |

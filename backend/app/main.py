@@ -20,7 +20,17 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api.v1 import auth, bootstrap, chat_receptor, consent, farms, observations, plots
+from app.api.v1 import (
+    auth,
+    bootstrap,
+    chat_receptor,
+    consent,
+    crop_knowledge,
+    farms,
+    observations,
+    plots,
+    soil,
+)
 from app.core.config import settings
 from app.core.database import Base, engine, get_db
 from app.core.exceptions import (
@@ -45,6 +55,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Ensure tables exist in local database
     Base.metadata.create_all(bind=engine)
     logger.info("Database schema initialized successfully.")
+
+    # Seed baseline agronomic crop knowledge idempotently
+    try:
+        from app.core.database import SessionLocal
+        from app.services.crop_seed_service import seed_crops_if_empty
+
+        with SessionLocal() as db:
+            count = seed_crops_if_empty(db)
+            logger.info("Agronomic knowledge baseline loaded: %d crops active.", count)
+    except Exception as exc:
+        logger.warning("Could not auto-seed crop knowledge on startup: %s", str(exc))
+
     yield
     logger.info("Shutting down AgriNova Backend Engine.")
 
@@ -246,6 +268,8 @@ app.include_router(consent.router, prefix=settings.API_V1_STR)
 app.include_router(farms.router, prefix=settings.API_V1_STR)
 app.include_router(plots.router, prefix=settings.API_V1_STR)
 app.include_router(observations.router, prefix=settings.API_V1_STR)
+app.include_router(crop_knowledge.router, prefix=settings.API_V1_STR)
+app.include_router(soil.router, prefix=settings.API_V1_STR)
 app.include_router(chat_receptor.router, prefix=settings.API_V1_STR)
 
 

@@ -198,6 +198,41 @@ Below is the exhaustive catalog of every active route currently implemented in t
 
 ---
 
+### Category: Crop Knowledge Base (Milestone D)
+| Method | Path | Handler | File Location | Auth | Status |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/crops` | `list_crops` | [`app/api/v1/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/crop_knowledge.py#L22) | Optional | 200 OK |
+| `GET` | `/api/v1/crops/{crop_id}` | `get_crop_detail` | [`app/api/v1/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/crop_knowledge.py#L36) | Optional | 200 OK / 404 |
+| `GET` | `/api/v1/crops/{crop_id}/stage-at-das` | `get_stage_at_das` | [`app/api/v1/crop_knowledge.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/crop_knowledge.py#L48) | Optional | 200 OK / 404 |
+
+- **Purpose**: Query versioned agronomic taxonomy, cultivar varieties, FAO-56 growth stages ($K_c$, $Z_r$, $p$), ICAR STCR fertilizer coefficients, and stage-specific IPM pest vulnerabilities.
+- **Query Parameters**:
+  - `GET /crops`: `season` (`KHARIF`, `RABI`, `ZAID`), `category` (`CEREAL`, `PULSE`, `OILSEED`, `FIBRE`, `CASH`).
+  - `GET /crops/{crop_id}/stage-at-das`: `das` (Day After Sowing, integer >= 0).
+- **Response Schemas**: `list[CropSummaryResponse]`, `CropDetailResponse`, `StageAtDASResponse`.
+- **Database Tables Touched**: `crops`, `crop_varieties`, `crop_growth_stages`, `crop_nutrient_benchmarks`, `crop_pest_profiles`.
+- **Existing Tests**: 8 tests in `backend/tests/test_crop_knowledge.py`.
+- **Test Result**: **PASS**.
+
+---
+
+### Category: Soil Intelligence & Fertilizer Recommendations (Milestone D)
+| Method | Path | Handler | File Location | Auth | Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/plots/{plot_id}/soil` | `ingest_plot_soil_health` | [`app/api/v1/soil.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/soil.py#L26) | Optional | 201 Created |
+| `GET` | `/api/v1/plots/{plot_id}/soil/rating` | `get_plot_soil_rating` | [`app/api/v1/soil.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/soil.py#L65) | Optional | 200 OK |
+| `POST` | `/api/v1/plots/{plot_id}/fertilizer-recommendation` | `compute_fertilizer_recommendation` | [`app/api/v1/soil.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/soil.py#L97) | Optional | 200 OK |
+
+- **Purpose**: Ingest Soil Health Card lab results, evaluate qualitative fertility tiers (Low/Medium/High) and composite Soil Health Index (0-100), and compute targeted-yield STCR fertilizer requirements converted to commercial 50kg bags (DAP, Urea, MOP) with stage-wise split schedules and ICAR safe upper bound clamping.
+- **Request Schemas**: `SoilHealthCardCreate`, `FertilizerRecommendationRequest`.
+- **Response Schemas**: `PlotSoilRatingResponse`, `FertilizerRecommendationResponse`.
+- **Database Tables Touched**: `soil_health_records`, `farm_plots`, `crop_cycles`, `crops`, `crop_nutrient_benchmarks`.
+- **Engines & Services Invoked**: `FertilizerEngine`, `SoilIngestionService`.
+- **Existing Tests**: 6 tests in `backend/tests/test_soil_api.py`, 6 tests in `backend/tests/test_fertilizer_engine.py`.
+- **Test Result**: **PASS**.
+
+---
+
 ### Category: Conversational Chat Receptor
 | Method | Path | Handler | File Location | Auth | Status |
 |---|---|---|---|---|---|

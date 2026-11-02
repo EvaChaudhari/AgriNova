@@ -18,19 +18,19 @@
 
 | Module ID | Module Name | Status | Existing Files | Tests Passing | Primary Gap |
 |---|---|---|---|---|---|
-| **M00** | Repository Foundation | `IMPLEMENTED` | `main.py`, `config.py`, `database.py`, `exceptions.py`, `logging.py` | 64/64 pass | Milestone A complete: /health, /ready, structured logging, RFC 7807 |
-| **M01** | Shared Contracts | `IMPLEMENTED` | `schemas/common.py`, `schemas/observations.py`, `schemas/*.py` | 64/64 pass | RFC 7807 ProblemDetails, ProvenanceMetadata, StandardObservationEnvelope |
-| **M02** | Database and Storage | `IMPLEMENTED` | `core/database.py`, `models/*.py`, `repositories/*.py`, `alembic/` | 64/64 pass | 17 tables; repository layer decoupling ORM queries from API endpoints |
-| **M03** | Identity and Consent | `IMPLEMENTED` | `core/security.py`, `core/auth.py`, `models/auth.py`, `models/consent.py`, `api/v1/auth.py`, `api/v1/consent.py` | 64/64 pass | Milestone B complete: PBKDF2 PIN hashing, JWT tokens, dual-mode auth, DPDP consent, audit logs |
-| **M04** | Farmer & Plot Registry | `IMPLEMENTED` | `models/plot.py`, `schemas/farm.py`, `api/v1/farms.py`, `api/v1/plots.py`, `repositories/plot_repository.py` | 64/64 pass | Milestone B complete: Parent Farm entity, concurrent multi-plot support, acreage aggregation |
+| **M00** | Repository Foundation | `IMPLEMENTED` | `main.py`, `config.py`, `database.py`, `exceptions.py`, `logging.py` | 84/84 pass | Milestone A complete: /health, /ready, structured logging, RFC 7807 |
+| **M01** | Shared Contracts | `IMPLEMENTED` | `schemas/common.py`, `schemas/observations.py`, `schemas/*.py` | 84/84 pass | RFC 7807 ProblemDetails, ProvenanceMetadata, StandardObservationEnvelope |
+| **M02** | Database and Storage | `IMPLEMENTED` | `core/database.py`, `models/*.py`, `repositories/*.py`, `alembic/` | 84/84 pass | 22 tables; repository layer decoupling ORM queries from API endpoints |
+| **M03** | Identity and Consent | `IMPLEMENTED` | `core/security.py`, `core/auth.py`, `models/auth.py`, `models/consent.py`, `api/v1/auth.py`, `api/v1/consent.py` | 84/84 pass | Milestone B complete: PBKDF2 PIN hashing, JWT tokens, dual-mode auth, DPDP consent, audit logs |
+| **M04** | Farmer & Plot Registry | `IMPLEMENTED` | `models/plot.py`, `schemas/farm.py`, `api/v1/farms.py`, `api/v1/plots.py`, `repositories/plot_repository.py` | 84/84 pass | Milestone B complete: Parent Farm entity, concurrent multi-plot support, acreage aggregation |
 | **S0** | Reference Geography | `PARTIALLY IMPLEMENTED` | `services/fallback_data.py` | Indirectly tested | Hardcoded district dictionary; missing formal admin hierarchy |
 | **S1** | Farmer & Plot Onboarding | `FUNCTIONALLY INTEGRATED` | `api/v1/bootstrap.py`, `api/v1/plots.py` | 4/4 pass | Tightly coupled to device_id; consent workflow not integrated |
-| **S2** | Soil Intelligence | `FUNCTIONALLY INTEGRATED` | `models/telemetry.py`, `services/fallback_data.py` | 2/2 pass | Telemetry stored; automated SHC API fetch missing |
-| **S3** | Weather & Climate | `IMPLEMENTED` | `services/weather_ingestion.py`, `models/observations.py`, `api/v1/observations.py` | 64/64 pass | Milestone C complete: Multi-day rolling forecasts, 24h/72h rainfall accumulation, storm triggers |
-| **S4** | Water Resources | `IMPLEMENTED` | `services/wris_service.py`, `models/observations.py`, `api/v1/observations.py` | 64/64 pass | Milestone C complete: India-WRIS station hydrographs, 5-yr decline rate, drought indicators |
-| **S5** | Satellite Processing | `IMPLEMENTED` | `engines/satellite_processor.py`, `models/observations.py`, `api/v1/observations.py` | 64/64 pass | Milestone C complete: Sentinel-2 zonal statistics, SCL cloud masking, phenology fallback |
-| **S6** | Terrain & Hydrology | `IMPLEMENTED` | `engines/terrain_engine.py`, `models/observations.py`, `api/v1/observations.py` | 64/64 pass | Milestone C complete: DEM slope %, degrees, TWI, erosion risk classification, regional hypsometric fallback |
-| **S7** | Crop Knowledge Base | `PARTIALLY IMPLEMENTED` | `services/fallback_data.py` | 7/7 pass | Hardcoded dictionary for 7 crops; database-backed versioning missing |
+| **S2** | Soil Intelligence | `IMPLEMENTED` | `models/telemetry.py`, `engines/fertilizer_engine.py`, `services/soil_ingestion_service.py`, `api/v1/soil.py` | 84/84 pass | Milestone D complete: ICAR STCR fertilizer engine, qualitative ratings, 50kg bag conversion, split schedule |
+| **S3** | Weather & Climate | `IMPLEMENTED` | `services/weather_ingestion.py`, `models/observations.py`, `api/v1/observations.py` | 84/84 pass | Milestone C complete: Multi-day rolling forecasts, 24h/72h rainfall accumulation, storm triggers |
+| **S4** | Water Resources | `IMPLEMENTED` | `services/wris_service.py`, `models/observations.py`, `api/v1/observations.py` | 84/84 pass | Milestone C complete: India-WRIS station hydrographs, 5-yr decline rate, drought indicators |
+| **S5** | Satellite Processing | `IMPLEMENTED` | `engines/satellite_processor.py`, `models/observations.py`, `api/v1/observations.py` | 84/84 pass | Milestone C complete: Sentinel-2 zonal statistics, SCL cloud masking, phenology fallback |
+| **S6** | Terrain & Hydrology | `IMPLEMENTED` | `engines/terrain_engine.py`, `models/observations.py`, `api/v1/observations.py` | 84/84 pass | Milestone C complete: DEM slope %, degrees, TWI, erosion risk classification, regional hypsometric fallback |
+| **S7** | Crop Knowledge Base | `IMPLEMENTED` | `models/crop_knowledge.py`, `services/crop_seed_service.py`, `api/v1/crop_knowledge.py` | 84/84 pass | Milestone D complete: Database-backed versioned taxonomy for 8 staple crops, varieties, FAO-56 stages, STCR benchmarks, IPM pest profiles |
 | **S8** | Water Balance & Irrigation | `SCIENTIFICALLY EVALUATED` | `engines/fao56_hydrology.py` | 7/7 pass | Complete FAO-56 Penman-Monteith implementation; soil moisture sensor feed missing |
 | **S9** | Crop Health & Yield | `PARTIALLY IMPLEMENTED` | `services/vision_service.py` | 1/1 pass | CIB leaf disease validator working; quantitative yield estimation missing |
 | **S10** | Hazard Engine | `FUNCTIONALLY INTEGRATED` | `engines/hazard_state.py` | 5/5 pass | 3-state FSM with storm & drought directives; historical hazard log missing |
@@ -252,27 +252,34 @@
 ### S2 — SOIL INTELLIGENCE
 - **Module ID**: `S2`
 - **Module Name**: Soil Physicochemical & Hydraulic Profiling
-- **Purpose**: Ingestion of NPK, pH, OC, soil texture, field capacity, wilting point.
+- **Purpose**: Ingestion of NPK, pH, OC, soil texture, qualitative fertility classification, Soil Health Index (0-100), and ICAR STCR fertilizer calculations.
 - **Existing File Paths**:
   - `backend/app/models/telemetry.py`
-  - `backend/app/schemas/geospatial.py`
+  - `backend/app/schemas/fertilizer.py`
+  - `backend/app/engines/fertilizer_engine.py`
+  - `backend/app/services/soil_ingestion_service.py`
   - `backend/app/services/fallback_data.py`
+  - `backend/app/api/v1/soil.py`
   - `backend/app/api/v1/plots.py`
 - **Existing Classes & Functions**:
   - `SoilHealthRecord`
+  - `FertilizerEngine` (`classify_soil_health`, `calculate_stcr_fertilizer`)
+  - `SoilIngestionService` (`ingest_soil_record`, `get_latest_soil_rating`)
   - `SOIL_TYPE_BENCHMARKS`, `get_soil_benchmark`
-  - `add_soil_health_record`
 - **Existing Database Tables**: `soil_health_records`
-- **Existing API Endpoints**: `POST /api/v1/plots/{plot_id}/soil-health`
-- **Upstream Dependencies**: `M02`, `M04`.
-- **Downstream Consumers**: `context_builder.py`, `fao56_hydrology.py`.
-- **Existing Tests**: `test_register_crop_cycle_and_telemetry` in `test_plots_api.py`.
-- **Actual Test Results**: **PASS**.
-- **Missing Functionality**: Automated Soil Health Card (SHC) API ingestion client; integration with soil moisture telemetry sensors.
+- **Existing API Endpoints**:
+  - `POST /api/v1/plots/{plot_id}/soil` (Ingest Soil Health Card lab values)
+  - `GET /api/v1/plots/{plot_id}/soil/rating` (Get fertility tiers & Soil Health Index)
+  - `POST /api/v1/plots/{plot_id}/fertilizer-recommendation` (STCR 50kg bag recommendation & split schedule)
+- **Upstream Dependencies**: `M02`, `M04`, `S7`.
+- **Downstream Consumers**: `context_builder.py`, `fao56_hydrology.py`, Farmer advisory clients.
+- **Existing Tests**: `backend/tests/test_soil_api.py`, `backend/tests/test_fertilizer_engine.py`.
+- **Actual Test Results**: **PASS** (12 dedicated tests pass).
+- **Missing Functionality**: Automated direct API pull from National Soil Health Card portal.
 - **Security Limitations**: None.
-- **Data-Source Limitations**: Relies on manual entry or regional benchmark fallback (Vertisol, Alfisol, Inceptisol, Sandy Loam, Clay Loam).
-- **Integration Status**: `FUNCTIONALLY INTEGRATED`
-- **Recommended Next Step**: Maintain regional benchmarks and add validation for NPK ranges and fertility ratings (Low/Medium/High).
+- **Data-Source Limitations**: Supports manual/lab entry, automated SHC schemas, and regional soil benchmark fallbacks.
+- **Integration Status**: `IMPLEMENTED`
+- **Recommended Next Step**: Milestone E: Farmer Workflows & Roadmap Checkpoints.
 
 ---
 
@@ -372,20 +379,31 @@
 ### S7 — CROP KNOWLEDGE BASE
 - **Module ID**: `S7`
 - **Module Name**: Versioned Agronomic Crop Knowledge
-- **Purpose**: FAO-56 crop coefficients ($K_c$), rooting depths ($Z_r$), depletion fractions ($p$), and growth stage DAS thresholds.
-- **Existing File Paths**: `backend/app/services/fallback_data.py`
-- **Existing Classes & Functions**: `FAO56_CROP_PARAMETERS`, `get_crop_params`
-- **Existing Database Tables**: None (static in-memory dictionary).
-- **Existing API Endpoints**: None.
-- **Upstream Dependencies**: Python standard library.
-- **Downstream Consumers**: `fao56_hydrology.py`, `satellite_stac.py`, `context_builder.py`.
-- **Existing Tests**: Verified across all 7 tests in `test_fao56.py`.
-- **Actual Test Results**: **PASS**.
-- **Missing Functionality**: Database-backed versioned repository of crops, varieties, and regional agro-ecological suitability matrices.
+- **Purpose**: FAO-56 crop coefficients ($K_c$), rooting depths ($Z_r$), depletion fractions ($p$), growth stage DAS thresholds, ICAR STCR fertilizer formulas, and CIB&RC IPM pest profiles.
+- **Existing File Paths**:
+  - `backend/app/models/crop_knowledge.py`
+  - `backend/app/schemas/crop_knowledge.py`
+  - `backend/app/services/crop_seed_service.py`
+  - `backend/app/api/v1/crop_knowledge.py`
+  - `backend/app/services/fallback_data.py`
+- **Existing Classes & Functions**:
+  - Models: `Crop`, `CropVariety`, `CropGrowthStage`, `CropNutrientBenchmark`, `CropPestProfile`
+  - Schemas: `CropSummaryResponse`, `CropDetailResponse`, `StageAtDASResponse`
+  - Services: `seed_crops_if_empty`
+- **Existing Database Tables**: `crops`, `crop_varieties`, `crop_growth_stages`, `crop_nutrient_benchmarks`, `crop_pest_profiles`
+- **Existing API Endpoints**:
+  - `GET /api/v1/crops` (Filter by season, category)
+  - `GET /api/v1/crops/{crop_id}` (Comprehensive crop dossier)
+  - `GET /api/v1/crops/{crop_id}/stage-at-das` (Resolve growth stage, Kc, and pest threats)
+- **Upstream Dependencies**: `M02`.
+- **Downstream Consumers**: `fao56_hydrology.py`, `fertilizer_engine.py`, `context_builder.py`, `chat_receptor.py`.
+- **Existing Tests**: `backend/tests/test_crop_knowledge.py` (8 tests) + `test_fao56.py`.
+- **Actual Test Results**: **PASS** (15 tests pass).
+- **Missing Functionality**: Dynamic UI CMS for extension agronomists to submit new cultivar varieties.
 - **Security Limitations**: None.
-- **Data-Source Limitations**: Hardcoded dictionary currently supports Cotton, Paddy/Rice, Maize, Soybean, Wheat, Groundnut, Chana.
-- **Integration Status**: `PARTIALLY IMPLEMENTED`
-- **Recommended Next Step**: Create database models `Crop`, `CropVariety`, and `CropAgronomicParameters` to enable dynamic updates without code deployment.
+- **Data-Source Limitations**: 8 staple Indian crops seeded with ICAR-calibrated values (Cotton, Paddy, Wheat, Soybean, Maize, Chickpea, Mustard, Sugarcane).
+- **Integration Status**: `IMPLEMENTED`
+- **Recommended Next Step**: Milestone E: Farmer Workflows & Agronomic Roadmaps.
 
 ---
 

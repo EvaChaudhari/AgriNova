@@ -13,6 +13,13 @@ from app.models.observations import (
     GroundwaterTimeSeries,
     TerrainTopography,
 )
+from app.models.crop_knowledge import (
+    Crop,
+    CropVariety,
+    CropGrowthStage,
+    CropNutrientBenchmark,
+    CropPestProfile,
+)
 
 __all__ = [
     "DeviceProfile",
@@ -32,4 +39,9 @@ __all__ = [
     "SatelliteObservation",
     "GroundwaterTimeSeries",
     "TerrainTopography",
+    "Crop",
+    "CropVariety",
+    "CropGrowthStage",
+    "CropNutrientBenchmark",
+    "CropPestProfile",
 ]
