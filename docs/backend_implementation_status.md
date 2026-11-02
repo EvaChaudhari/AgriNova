@@ -1,0 +1,562 @@
+# 📊 Krishi Mitra / AgriNova — Backend Implementation Status Register
+
+**Author**: Senior Backend Architect  
+**Audit Date**: October 30, 2026  
+**Status Categories**:
+1. `IMPLEMENTED` — Code is written, tested, and complete.
+2. `DATA-CONNECTED` — Connected to external live data providers.
+3. `FUNCTIONALLY INTEGRATED` — Integrated end-to-end with upstream/downstream services.
+4. `SCIENTIFICALLY EVALUATED` — Formulations verified against scientific literature/benchmarks.
+5. `FIELD-VALIDATED` — Validated with real smallholder farmers and extension officers.
+6. `PARTIALLY IMPLEMENTED` — Core structure present, but key features/persistence missing.
+7. `NOT IMPLEMENTED` — Planned module, no functional implementation yet.
+8. `BLOCKED BY EXTERNAL DEPENDENCY` — Waiting for external API credentials, licensing, or datasets.
+
+---
+
+## 1. Module Implementation Summary Matrix
+
+| Module ID | Module Name | Status | Existing Files | Tests Passing | Primary Gap |
+|---|---|---|---|---|---|
+| **M00** | Repository Foundation | `IMPLEMENTED` | `main.py`, `config.py`, `database.py`, `exceptions.py`, `logging.py` | 32/32 pass | Milestone A complete: /health, /ready, structured logging, RFC 7807 |
+| **M01** | Shared Contracts | `IMPLEMENTED` | `schemas/common.py`, `schemas/*.py` | 32/32 pass | RFC 7807 ProblemDetails, ProvenanceMetadata, ObservationEnvelope |
+| **M02** | Database and Storage | `PARTIALLY IMPLEMENTED` | `core/database.py`, `models/*.py`, `alembic/` | 23/23 pass | 7 tables exist; repository layer and object storage missing |
+| **M03** | Identity and Consent | `PARTIALLY IMPLEMENTED` | `models/profile.py`, `api/v1/bootstrap.py` | 4/4 pass | Device UUID only; cryptographic JWT, User, Consent & Audit missing |
+| **M04** | Farmer & Plot Registry | `FUNCTIONALLY INTEGRATED` | `models/plot.py`, `api/v1/plots.py` | 2/2 pass | Single active plot limitation; Farm aggregation entity missing |
+| **S0** | Reference Geography | `PARTIALLY IMPLEMENTED` | `services/fallback_data.py` | Indirectly tested | Hardcoded district dictionary; missing formal admin hierarchy |
+| **S1** | Farmer & Plot Onboarding | `FUNCTIONALLY INTEGRATED` | `api/v1/bootstrap.py`, `api/v1/plots.py` | 4/4 pass | Tightly coupled to device_id; consent workflow not integrated |
+| **S2** | Soil Intelligence | `FUNCTIONALLY INTEGRATED` | `models/telemetry.py`, `services/fallback_data.py` | 2/2 pass | Telemetry stored; automated SHC API fetch missing |
+| **S3** | Weather & Climate | `DATA-CONNECTED` | `services/weather_service.py` | 1/1 pass | Current weather only; missing multi-day forecast storage |
+| **S4** | Water Resources | `FUNCTIONALLY INTEGRATED` | `models/telemetry.py`, `services/fallback_data.py` | 2/2 pass | Groundwater depth tracked; surface water & India-WRIS automated scraper missing |
+| **S5** | Satellite Processing | `PARTIALLY IMPLEMENTED` | `engines/satellite_stac.py` | 1/1 pass | STAC search functional; raster clipping missing (synthetic curve substituted) |
+| **S6** | Terrain & Hydrology | `PARTIALLY IMPLEMENTED` | `models/plot.py`, `engines/hazard_state.py` | 1/1 pass | Slope/elevation stored on plot; automated DEM raster query missing |
+| **S7** | Crop Knowledge Base | `PARTIALLY IMPLEMENTED` | `services/fallback_data.py` | 7/7 pass | Hardcoded dictionary for 7 crops; database-backed versioning missing |
+| **S8** | Water Balance & Irrigation | `SCIENTIFICALLY EVALUATED` | `engines/fao56_hydrology.py` | 7/7 pass | Complete FAO-56 Penman-Monteith implementation; soil moisture sensor feed missing |
+| **S9** | Crop Health & Yield | `PARTIALLY IMPLEMENTED` | `services/vision_service.py` | 1/1 pass | CIB leaf disease validator working; quantitative yield estimation missing |
+| **S10** | Hazard Engine | `FUNCTIONALLY INTEGRATED` | `engines/hazard_state.py` | 5/5 pass | 3-state FSM with storm & drought directives; historical hazard log missing |
+| **S11** | Knowledge Retrieval (RAG) | `NOT IMPLEMENTED` | — | None | No document ingestion, vector indexing, or ICAR citation store |
+| **S12** | Gemini Chat & Multilingual | `FUNCTIONALLY INTEGRATED` | `api/v1/chat_receptor.py`, `services/speech_service.py` | 5/5 pass | Fully working gateway + fallback; needs retrieval grounding & token security |
+| **S13** | Farmer Workflows | `NOT IMPLEMENTED` | — | None | Crop planner, roadmap milestones, offline sync, notifications missing |
+| **S14** | Evaluation & MLOps | `PARTIALLY IMPLEMENTED` | `tests/test_fao56.py`, `tests/test_hazard_state.py` | 12/12 pass | Scientific unit benchmarks verified; automated drift/quality reports missing |
+| **S15** | Governed Data Products | `NOT IMPLEMENTED` | — | None | Aggregation and de-identification not yet started (later milestone) |
+| **S16** | Privacy and Security | `PARTIALLY IMPLEMENTED` | `core/config.py` | 23/23 pass | Secrets in env; lacking token auth, rate limiting, and access control |
+
+---
+
+## 2. Detailed Module-by-Module Audit Record
+
+### M00 — REPOSITORY FOUNDATION
+- **Module ID**: `M00`
+- **Module Name**: Repository Foundation & Application Core
+- **Purpose**: App bootstrapping, environment loading, database session management, CORS, liveness & readiness health probes, structured logging, correlation ID tracking, centralized RFC 7807 error handling.
+- **Existing File Paths**:
+  - `backend/app/main.py`
+  - `backend/app/core/config.py`
+  - `backend/app/core/database.py`
+  - `backend/app/core/exceptions.py`
+  - `backend/app/core/logging.py`
+  - `backend/requirements.txt`
+- **Existing Classes & Functions**:
+  - `Settings` in `config.py`
+  - `PostGISGeometry`, `get_db` in `database.py`
+  - `AgriNovaException`, `EntityNotFoundError`, `ValidationError`, `HydrologicalCalculationError`, `HazardStateViolationError`, `DatabaseConnectionError`, `StorageUnavailableError`, `build_problem_details_response` in `exceptions.py`
+  - `StructuredJsonFormatter`, `setup_logging`, `get_correlation_id`, `set_correlation_id`, `sanitize_value` in `logging.py`
+  - `lifespan`, `correlation_and_logging_middleware`, `liveness_check` (`GET /health`), `readiness_check` (`GET /ready`), `root_status` (`GET /`), `healthz` (`GET /healthz`) in `main.py`
+- **Existing Database Tables**: None directly defined here.
+- **Existing API Endpoints**:
+  - `GET /health` (Process liveness probe - zero DB dependency)
+  - `GET /ready` (Subsystem readiness probe with real DB `SELECT 1` & storage write canary)
+  - `GET /` (Root info)
+  - `GET /healthz` (Legacy Kubernetes status probe)
+- **Upstream Dependencies**: None.
+- **Downstream Consumers**: All API routers and database models.
+- **Existing Tests**: `backend/tests/test_foundation.py` (9 dedicated tests) + all API integration tests.
+- **Actual Test Results**: **PASS** (32/32 tests pass).
+- **Missing Functionality**: Complete for Milestone A.
+- **Security Limitations**: Open CORS (`allow_origins=["*"]`) for mobile clients.
+- **Data-Source Limitations**: None.
+- **Integration Status**: `IMPLEMENTED`
+- **Recommended Next Step**: Milestone B: Storage, Identity, and Multi-Plot Registry.
+
+---
+
+### M01 — SHARED CONTRACTS
+- **Module ID**: `M01`
+- **Module Name**: Shared Contracts & Data Transfer Objects
+- **Purpose**: Pydantic v2 schemas for client-server communication.
+- **Existing File Paths**:
+  - `backend/app/schemas/bootstrap.py`
+  - `backend/app/schemas/geospatial.py`
+  - `backend/app/schemas/chat.py`
+- **Existing Classes & Functions**:
+  - `DeviceProfileBase`, `DeviceProfileCreate`, `DeviceProfileResponse`, `BootstrapResponse`
+  - `GeoJSONPolygon`, `PlotCreateRequest`, `PlotResponse`, `CropCycleCreateRequest`, `CropCycleResponse`
+  - `GroundwaterCreateRequest`, `GroundwaterResponse`, `SoilHealthCreateRequest`, `SoilHealthResponse`
+  - `ChatMessageResponse`, `ChatSessionResponse`, `ChatReceptorResponse`
+- **Existing Database Tables**: None.
+- **Existing API Endpoints**: Used by all v1 routes.
+- **Upstream Dependencies**: Pydantic v2.
+- **Downstream Consumers**: API routers, test fixtures.
+- **Existing Tests**: Validated in API integration tests.
+- **Actual Test Results**: **PASS**.
+- **Missing Functionality**:
+  - Standardized observation metadata envelope (`unit`, `source`, `timestamp`, `quality_flag`).
+  - Standard pagination wrappers (`Page[T]`).
+  - RFC 7807 Error response schema.
+- **Security Limitations**: No payload size limits on GeoJSON coordinates.
+- **Data-Source Limitations**: None.
+- **Integration Status**: `PARTIALLY IMPLEMENTED`
+- **Recommended Next Step**: Add standardized observation envelopes, error schemas, and pagination models.
+
+---
+
+### M02 — DATABASE AND STORAGE
+- **Module ID**: `M02`
+- **Module Name**: Database Engine, Models & Object Storage
+- **Purpose**: Relational schema definition, spatial polygon support, migrations, data persistence.
+- **Existing File Paths**:
+  - `backend/app/core/database.py`
+  - `backend/app/models/profile.py`
+  - `backend/app/models/plot.py`
+  - `backend/app/models/telemetry.py`
+  - `backend/app/models/chat.py`
+  - `backend/alembic/env.py`
+  - `backend/alembic/versions/f49b0e3b4438_initial_krishi_mitra_schema.py`
+- **Existing Classes & Functions**:
+  - `Base`, `PostGISGeometry`, `SessionLocal`, `get_db`
+  - `DeviceProfile`, `FarmPlot`, `CropCycle`, `GroundwaterObservation`, `SoilHealthRecord`, `ChatSession`, `ChatMessage`
+- **Existing Database Tables**:
+  - `device_profiles`, `farm_plots`, `crop_cycles`, `groundwater_observations`, `soil_health_records`, `chat_sessions`, `chat_messages`
+- **Existing API Endpoints**: Queried by all endpoints.
+- **Upstream Dependencies**: SQLAlchemy 2.0, GeoAlchemy2, Shapely, Alembic.
+- **Downstream Consumers**: Repositories, Services, Routers.
+- **Existing Tests**: Tested via SQLite in-memory fixtures with `StaticPool` in `tests/conftest.py`.
+- **Actual Test Results**: **PASS** (100% of DB assertions pass).
+- **Missing Functionality**:
+  - Repository abstraction layer (currently queries are executed directly inside API route handlers).
+  - Object storage client (S3/MinIO) for storing audio bytes and leaf photos.
+  - Models for `User`, `FarmerProfile`, `Device`, `ConsentRecord`, `AuditLog`, `WeatherObservation`, `SatelliteObservation`, `CropKnowledge`.
+- **Security Limitations**: SQLite used in development lacks row-level security; cascading deletes on `device_id` wipe out all plot and session history.
+- **Data-Source Limitations**: None.
+- **Integration Status**: `PARTIALLY IMPLEMENTED`
+- **Recommended Next Step**: Introduce Repository design pattern to decouple ORM queries from FastAPI endpoints.
+
+---
+
+### M03 — IDENTITY AND CONSENT
+- **Module ID**: `M03`
+- **Module Name**: Farmer Identity, Authentication, and Consent
+- **Purpose**: Manage farmer identity, device association, authentication tokens, and legal consent under DPDP Act.
+- **Existing File Paths**:
+  - `backend/app/models/profile.py`
+  - `backend/app/schemas/bootstrap.py`
+  - `backend/app/api/v1/bootstrap.py`
+- **Existing Classes & Functions**:
+  - `DeviceProfile` model
+  - `bootstrap_app`, `onboard_device`
+- **Existing Database Tables**: `device_profiles`
+- **Existing API Endpoints**:
+  - `GET /api/v1/bootstrap`
+  - `POST /api/v1/bootstrap/onboard`
+- **Upstream Dependencies**: `M00`, `M02`.
+- **Downstream Consumers**: All plot and chat operations.
+- **Existing Tests**: `test_bootstrap_endpoint` in `test_chat_receptor.py`.
+- **Actual Test Results**: **PASS**.
+- **Missing Functionality**:
+  - Cryptographic token authentication (JWT / bearer tokens).
+  - Decoupling of `FarmerProfile` from physical `Device` hardware UUID.
+  - Consent records (`ConsentRecord`) tracking purpose, grant, and revocation.
+  - Audit logging of data access.
+- **Security Limitations**: **CRITICAL**. Any client presenting a string `device_id` can access that device's plots, crop cycles, and chat logs.
+- **Data-Source Limitations**: None.
+- **Integration Status**: `PARTIALLY IMPLEMENTED`
+- **Recommended Next Step**: Create `User`, `FarmerProfile`, `Device`, and `ConsentRecord` models, and implement bearer token authentication with fallback to `device_id` for backward compatibility.
+
+---
+
+### M04 — FARMER AND PLOT REGISTRY
+- **Module ID**: `M04`
+- **Module Name**: Farm Plot & Crop Cycle Registry
+- **Purpose**: Spatial registration of agricultural land parcels, GeoJSON boundaries, area calculation, crop cycles.
+- **Existing File Paths**:
+  - `backend/app/models/plot.py`
+  - `backend/app/schemas/geospatial.py`
+  - `backend/app/api/v1/plots.py`
+- **Existing Classes & Functions**:
+  - `FarmPlot`, `CropCycle`
+  - `calculate_polygon_geodesic_area_hectares`
+  - `create_farm_plot`, `list_farm_plots`, `get_plot_details`, `register_crop_cycle`
+- **Existing Database Tables**: `farm_plots`, `crop_cycles`
+- **Existing API Endpoints**:
+  - `POST /api/v1/plots`
+  - `GET /api/v1/plots`
+  - `GET /api/v1/plots/{plot_id}`
+  - `POST /api/v1/plots/{plot_id}/crop-cycle`
+- **Upstream Dependencies**: `M02`, `M03`, Shapely.
+- **Downstream Consumers**: `context_builder.py`, `chat_receptor.py`.
+- **Existing Tests**: `test_create_and_list_plots`, `test_register_crop_cycle_and_telemetry` in `test_plots_api.py`.
+- **Actual Test Results**: **PASS**.
+- **Missing Functionality**:
+  - Multiple simultaneous active plots per farmer (currently adding a plot sets previous plots to `is_active = False`).
+  - `Farm` parent entity grouping plots.
+  - Polygon self-intersection validation and coordinate reference system (CRS) checks.
+- **Security Limitations**: Plots can be listed/retrieved by any caller knowing the ID or device_id; lacks ownership authorization checks.
+- **Data-Source Limitations**: None.
+- **Integration Status**: `FUNCTIONALLY INTEGRATED`
+- **Recommended Next Step**: Enable multiple active plots per farmer, add polygon topological validation, and enforce ownership checks.
+
+---
+
+### S0 — REFERENCE GEOGRAPHY
+- **Module ID**: `S0`
+- **Module Name**: Administrative Boundaries & Agro-Climatic Zones
+- **Purpose**: Coordinate-to-district/block lookup, agro-ecological classification.
+- **Existing File Paths**: `backend/app/services/fallback_data.py`
+- **Existing Classes & Functions**: `CGWB_DISTRICT_GROUNDWATER_MBGL`, `get_groundwater_fallback`
+- **Existing Database Tables**: None.
+- **Existing API Endpoints**: None.
+- **Upstream Dependencies**: Python standard library.
+- **Downstream Consumers**: `context_builder.py`.
+- **Existing Tests**: Tested indirectly via context builder and bootstrap tests.
+- **Actual Test Results**: **PASS**.
+- **Missing Functionality**: Formal spatial boundaries for Indian States, Districts, Blocks, and ICAR Agro-Climatic Zones.
+- **Security Limitations**: None.
+- **Data-Source Limitations**: Hardcoded dictionary covers ~20 major agricultural districts in AP, Telangana, Maharashtra, Karnataka, and Punjab.
+- **Integration Status**: `PARTIALLY IMPLEMENTED`
+- **Recommended Next Step**: Formalize reference geography lookup service with agro-climatic zone mapping.
+
+---
+
+### S2 — SOIL INTELLIGENCE
+- **Module ID**: `S2`
+- **Module Name**: Soil Physicochemical & Hydraulic Profiling
+- **Purpose**: Ingestion of NPK, pH, OC, soil texture, field capacity, wilting point.
+- **Existing File Paths**:
+  - `backend/app/models/telemetry.py`
+  - `backend/app/schemas/geospatial.py`
+  - `backend/app/services/fallback_data.py`
+  - `backend/app/api/v1/plots.py`
+- **Existing Classes & Functions**:
+  - `SoilHealthRecord`
+  - `SOIL_TYPE_BENCHMARKS`, `get_soil_benchmark`
+  - `add_soil_health_record`
+- **Existing Database Tables**: `soil_health_records`
+- **Existing API Endpoints**: `POST /api/v1/plots/{plot_id}/soil-health`
+- **Upstream Dependencies**: `M02`, `M04`.
+- **Downstream Consumers**: `context_builder.py`, `fao56_hydrology.py`.
+- **Existing Tests**: `test_register_crop_cycle_and_telemetry` in `test_plots_api.py`.
+- **Actual Test Results**: **PASS**.
+- **Missing Functionality**: Automated Soil Health Card (SHC) API ingestion client; integration with soil moisture telemetry sensors.
+- **Security Limitations**: None.
+- **Data-Source Limitations**: Relies on manual entry or regional benchmark fallback (Vertisol, Alfisol, Inceptisol, Sandy Loam, Clay Loam).
+- **Integration Status**: `FUNCTIONALLY INTEGRATED`
+- **Recommended Next Step**: Maintain regional benchmarks and add validation for NPK ranges and fertility ratings (Low/Medium/High).
+
+---
+
+### S3 — WEATHER AND CLIMATE
+- **Module ID**: `S3`
+- **Module Name**: Weather Ingestion & Agro-Climatic Normals
+- **Purpose**: Fetch live weather conditions, 24h rainfall forecasts, and seasonal rainfall deficits.
+- **Existing File Paths**:
+  - `backend/app/services/weather_service.py`
+  - `backend/app/services/fallback_data.py`
+- **Existing Classes & Functions**:
+  - `WeatherSnapshot`, `fetch_weather_data`
+  - `IMD_AGROCLIMATIC_NORMALS`
+- **Existing Database Tables**: None (transient snapshot).
+- **Existing API Endpoints**: Called by bootstrap and chat endpoints.
+- **Upstream Dependencies**: `httpx`, OpenWeatherMap API.
+- **Downstream Consumers**: `context_builder.py`, `fao56_hydrology.py`, `hazard_state.py`.
+- **Existing Tests**: `test_weather_fallback` in `test_services.py`.
+- **Actual Test Results**: **PASS**.
+- **Missing Functionality**: Persistence of historical weather observations; 5-day daily forecast ingestion; provider retry logic.
+- **Security Limitations**: API key stored in settings.
+- **Data-Source Limitations**: Live weather requires `OPENWEATHERMAP_API_KEY`; fallback uses IMD monthly climatological normals.
+- **Integration Status**: `DATA-CONNECTED`
+- **Recommended Next Step**: Add database model `WeatherObservation` to store historical hourly/daily observations and rainfall accumulations.
+
+---
+
+### S4 — WATER RESOURCES
+- **Module ID**: `S4`
+- **Module Name**: Groundwater & Water Resource Monitoring
+- **Purpose**: Track water table depth in mbgl from telemetry, India-WRIS, or CGWB fallback.
+- **Existing File Paths**:
+  - `backend/app/models/telemetry.py`
+  - `backend/app/schemas/geospatial.py`
+  - `backend/app/services/fallback_data.py`
+  - `backend/app/api/v1/plots.py`
+- **Existing Classes & Functions**:
+  - `GroundwaterObservation`
+  - `CGWB_DISTRICT_GROUNDWATER_MBGL`, `get_groundwater_fallback`
+  - `add_groundwater_observation`
+- **Existing Database Tables**: `groundwater_observations`
+- **Existing API Endpoints**: `POST /api/v1/plots/{plot_id}/groundwater`
+- **Upstream Dependencies**: `M02`, `M04`.
+- **Downstream Consumers**: `context_builder.py`, `fao56_hydrology.py`, `hazard_state.py`.
+- **Existing Tests**: `test_register_crop_cycle_and_telemetry` in `test_plots_api.py`.
+- **Actual Test Results**: **PASS**.
+- **Missing Functionality**: Automated India-WRIS API client; surface water reservoir and canal rotation schedule tracking.
+- **Security Limitations**: None.
+- **Data-Source Limitations**: Automated India-WRIS portal scraper not yet connected; operates on manual log or CGWB median.
+- **Integration Status**: `FUNCTIONALLY INTEGRATED`
+- **Recommended Next Step**: Implement water source inventory model (`WaterSource`: Borewell, Open Well, Canal, Farm Pond) linked to plots.
+
+---
+
+### S5 — SATELLITE PROCESSING
+- **Module ID**: `S5`
+- **Module Name**: Sentinel-2 Optical Indices & Synthetic Phenology
+- **Purpose**: Retrieve NDVI and NDWI vegetation and canopy moisture indices.
+- **Existing File Paths**: `backend/app/engines/satellite_stac.py`
+- **Existing Classes & Functions**: `VegetationIndices`, `calculate_synthetic_indices`, `fetch_sentinel2_indices`
+- **Existing Database Tables**: None (transient snapshot).
+- **Existing API Endpoints**: Called by context builder.
+- **Upstream Dependencies**: `httpx`, Element84 AWS Earth Search STAC API.
+- **Downstream Consumers**: `context_builder.py`, `hazard_state.py`.
+- **Existing Tests**: `test_synthetic_satellite_phenological_curve` in `test_services.py`.
+- **Actual Test Results**: **PASS**.
+- **Missing Functionality**: Live raster array download, cloud masking, and spatial clipping to polygon boundary via Rasterio/NumPy.
+- **Security Limitations**: None.
+- **Data-Source Limitations**: STAC search is active, but pixel calculation falls back to Days After Sowing (DAS) phenological sigmoid model.
+- **Integration Status**: `PARTIALLY IMPLEMENTED`
+- **Recommended Next Step**: Add raster processing service using Rasterio for pixel-level NDVI/NDWI zonal statistics when COG scenes are fetched.
+
+---
+
+### S6 — TERRAIN AND HYDROLOGY
+- **Module ID**: `S6`
+- **Module Name**: Digital Elevation Model (DEM) & Slope Analysis
+- **Purpose**: Assess terrain slope to distinguish topsoil sheet erosion (>3%) from root asphyxiation (<=3%).
+- **Existing File Paths**:
+  - `backend/app/models/plot.py`
+  - `backend/app/engines/hazard_state.py`
+- **Existing Classes & Functions**: `HazardStateMachine.evaluate`, `FarmPlot.slope_percent`, `FarmPlot.elevation_m`
+- **Existing Database Tables**: Stored in `farm_plots`.
+- **Existing API Endpoints**: Set during `POST /api/v1/plots`.
+- **Upstream Dependencies**: `M04`.
+- **Downstream Consumers**: `hazard_state.py`, `context_builder.py`.
+- **Existing Tests**: `test_storm_flood_mode_slope_analysis` in `test_hazard_state.py`.
+- **Actual Test Results**: **PASS**.
+- **Missing Functionality**: Automated DEM raster sampling (SRTM 30m / Copernicus 30m) from plot centroid.
+- **Security Limitations**: None.
+- **Data-Source Limitations**: Slope and elevation currently rely on user registration input or default fallback (1.5% slope, 250m elevation).
+- **Integration Status**: `PARTIALLY IMPLEMENTED`
+- **Recommended Next Step**: Implement an automated DEM lookup service using open Copernicus 30m WCS or local GeoTIFF tiles.
+
+---
+
+### S7 — CROP KNOWLEDGE BASE
+- **Module ID**: `S7`
+- **Module Name**: Versioned Agronomic Crop Knowledge
+- **Purpose**: FAO-56 crop coefficients ($K_c$), rooting depths ($Z_r$), depletion fractions ($p$), and growth stage DAS thresholds.
+- **Existing File Paths**: `backend/app/services/fallback_data.py`
+- **Existing Classes & Functions**: `FAO56_CROP_PARAMETERS`, `get_crop_params`
+- **Existing Database Tables**: None (static in-memory dictionary).
+- **Existing API Endpoints**: None.
+- **Upstream Dependencies**: Python standard library.
+- **Downstream Consumers**: `fao56_hydrology.py`, `satellite_stac.py`, `context_builder.py`.
+- **Existing Tests**: Verified across all 7 tests in `test_fao56.py`.
+- **Actual Test Results**: **PASS**.
+- **Missing Functionality**: Database-backed versioned repository of crops, varieties, and regional agro-ecological suitability matrices.
+- **Security Limitations**: None.
+- **Data-Source Limitations**: Hardcoded dictionary currently supports Cotton, Paddy/Rice, Maize, Soybean, Wheat, Groundnut, Chana.
+- **Integration Status**: `PARTIALLY IMPLEMENTED`
+- **Recommended Next Step**: Create database models `Crop`, `CropVariety`, and `CropAgronomicParameters` to enable dynamic updates without code deployment.
+
+---
+
+### S8 — WATER BALANCE AND IRRIGATION
+- **Module ID**: `S8`
+- **Module Name**: Deterministic FAO-56 Hydrological Engine
+- **Purpose**: Calculate Penman-Monteith $ET_0$, crop $ET_c$, soil $TAW$, $RAW$, root zone depletion $D_t$, and output triggers (`IRRIGATE`, `HOLD`, `DRAIN`).
+- **Existing File Paths**: `backend/app/engines/fao56_hydrology.py`
+- **Existing Classes & Functions**:
+  - `FAO56DailyET0Input`, `WaterBalanceInput`, `WaterBalanceOutput`
+  - `calculate_fao56_et0`, `calculate_effective_rainfall`, `calculate_capillary_rise`, `calculate_water_balance`
+- **Existing Database Tables**: None (transient computation).
+- **Existing API Endpoints**: Executed inside `GET /api/v1/bootstrap` and `POST /api/v1/chat/receptor`.
+- **Upstream Dependencies**: `S2`, `S3`, `S4`, `S7`.
+- **Downstream Consumers**: `context_builder.py`, `chat_receptor.py`.
+- **Existing Tests**: 7 unit tests in `tests/test_fao56.py`.
+- **Actual Test Results**: **PASS** (100% pass rate).
+- **Missing Functionality**: Ingestion of physical soil moisture sensor depths; multi-day predictive depletion simulation.
+- **Security Limitations**: None (pure deterministic mathematical functions).
+- **Data-Source Limitations**: Depends on accurate weather and soil inputs.
+- **Integration Status**: `SCIENTIFICALLY EVALUATED`
+- **Recommended Next Step**: Persist historical water balance calculation outputs to `water_balance_results` table for auditability.
+
+---
+
+### S9 — CROP HEALTH AND YIELD
+- **Module ID**: `S9`
+- **Module Name**: Pest/Disease Leaf Vision & Yield Estimation
+- **Purpose**: Multimodal leaf vision validation adhering to CIB&RC IPM guidelines; yield estimation.
+- **Existing File Paths**: `backend/app/services/vision_service.py`
+- **Existing Classes & Functions**: `LeafDiagnosisResult`, `CIB_APPROVED_IPM_DATABASE`, `LeafVisionService.diagnose_leaf`
+- **Existing Database Tables**: None.
+- **Existing API Endpoints**: Called by `POST /api/v1/chat/receptor`.
+- **Upstream Dependencies**: `httpx`, Gemini 2.5 Flash Vision API.
+- **Downstream Consumers**: `chat_receptor.py`.
+- **Existing Tests**: `test_leaf_vision_validator` in `test_services.py`.
+- **Actual Test Results**: **PASS**.
+- **Missing Functionality**: Quantitative vegetation vigor comparison against historical NDVI baseline; empirical yield estimation modeling.
+- **Security Limitations**: File uploads currently handled in-memory without virus scanning or magic byte validation.
+- **Data-Source Limitations**: Live diagnosis requires `GEMINI_API_KEY`; fallback uses CIB&RC IPM guidelines for Cotton, Maize, and Wheat.
+- **Integration Status**: `PARTIALLY IMPLEMENTED`
+- **Recommended Next Step**: Add strict image file validation (magic bytes, max 5MB size limit) and implement NDVI-based canopy vigor tracking.
+
+---
+
+### S10 — HAZARD ENGINE
+- **Module ID**: `S10`
+- **Module Name**: Extreme Weather Hazard State Machine
+- **Purpose**: Deterministic finite state machine enforcing safety directives (STORM_FLOOD_MODE, EL_NINO_DROUGHT_MODE, NORMAL_MODE).
+- **Existing File Paths**: `backend/app/engines/hazard_state.py`
+- **Existing Classes & Functions**:
+  - `HazardStateMode`, `HazardEngineInput`, `HazardEvaluationResult`
+  - `HazardStateMachine.evaluate`
+- **Existing Database Tables**: None.
+- **Existing API Endpoints**: Executed inside `GET /api/v1/bootstrap` and `POST /api/v1/chat/receptor`.
+- **Upstream Dependencies**: `S3`, `S4`, `S5`, `S6`.
+- **Downstream Consumers**: `context_builder.py`, `chat_receptor.py`.
+- **Existing Tests**: 5 unit tests in `tests/test_hazard_state.py`.
+- **Actual Test Results**: **PASS** (100% pass rate).
+- **Missing Functionality**: Configurable dynamic hazard thresholds; database logging of hazard events (`hazard_events`).
+- **Security Limitations**: None (pure deterministic rules).
+- **Data-Source Limitations**: Relies on 24h rainfall forecasts and groundwater observations.
+- **Integration Status**: `FUNCTIONALLY INTEGRATED`
+- **Recommended Next Step**: Implement a `hazard_events` database model to maintain an auditable timeline of alerts and farmer acknowledgments.
+
+---
+
+### S11 — APPROVED KNOWLEDGE RETRIEVAL AND GUARDRAILS
+- **Module ID**: `S11`
+- **Module Name**: Agronomic Knowledge Retrieval (RAG) & Guardrails
+- **Purpose**: Ingestion, indexing, and retrieval of vetted ICAR packages of practices to ground AI responses with official citations.
+- **Existing File Paths**: None.
+- **Existing Classes & Functions**: None.
+- **Existing Database Tables**: None.
+- **Existing API Endpoints**: None.
+- **Upstream Dependencies**: PostgreSQL / pgvector / full-text search.
+- **Downstream Consumers**: `chat_receptor.py`.
+- **Existing Tests**: None.
+- **Actual Test Results**: `NOT IMPLEMENTED`.
+- **Missing Functionality**: Document chunking, keyword/vector search, ICAR source attribution, input/output agronomic guardrails.
+- **Security Limitations**: Relying on ungrounded LLM risks hallucinatory pesticide advice (currently mitigated by deterministic fallback).
+- **Data-Source Limitations**: Requires digital repository of ICAR and State Agricultural University (SAU) publications.
+- **Integration Status**: `NOT IMPLEMENTED`
+- **Recommended Next Step**: Build a relational retrieval service using PostgreSQL full-text search (`tsvector`) for verified ICAR advisories.
+
+---
+
+### S12 — GEMINI CHAT AND MULTILINGUAL INTERACTION
+- **Module ID**: `S12`
+- **Module Name**: Grounded Multimodal Agricultural Chat Gateway
+- **Purpose**: Voice/Vision/Text receptor grounding queries in live agronomic context using ICAR system prompt.
+- **Existing File Paths**:
+  - `backend/app/api/v1/chat_receptor.py`
+  - `backend/app/services/speech_service.py`
+- **Existing Classes & Functions**:
+  - `chat_receptor_endpoint`, `call_llm_grounded_response`, `generate_deterministic_agri_response`
+  - `SpeechService.transcribe_audio`, `SpeechService.synthesize_speech`
+- **Existing Database Tables**: `chat_sessions`, `chat_messages`
+- **Existing API Endpoints**: `POST /api/v1/chat/receptor`
+- **Upstream Dependencies**: `M02`, `M03`, `M04`, `S8`, `S9`, `S10`, Gemini API, Bhashini ULCA API.
+- **Downstream Consumers**: Farmer mobile client.
+- **Existing Tests**: 5 integration tests in `tests/test_chat_receptor.py` and `tests/test_services.py`.
+- **Actual Test Results**: **PASS** (handles new session, resumption, voice/vision multipart, and storm hazard chemical halting override).
+- **Missing Functionality**: User authentication checks; rate limiting; intent routing.
+- **Security Limitations**: Any caller can read or append to any `session_id`.
+- **Data-Source Limitations**: Requires `GEMINI_API_KEY` for live AI; falls back to deterministic multilingual response templates.
+- **Integration Status**: `FUNCTIONALLY INTEGRATED`
+- **Recommended Next Step**: Enforce authentication and ownership checks on `session_id`.
+
+---
+
+### S13 — FARMER WORKFLOWS
+- **Module ID**: `S13`
+- **Module Name**: Crop Planner, Roadmap, Sync & Notifications
+- **Purpose**: Crop suitability ranking, milestone roadmaps, offline data synchronization, and push notifications.
+- **Existing File Paths**: None.
+- **Existing Classes & Functions**: None.
+- **Existing Database Tables**: None.
+- **Existing API Endpoints**: None.
+- **Upstream Dependencies**: `M04`, `S2`, `S3`, `S4`, `S7`, `S10`.
+- **Downstream Consumers**: Farmer mobile client.
+- **Existing Tests**: None.
+- **Actual Test Results**: `NOT IMPLEMENTED`.
+- **Missing Functionality**:
+  - Crop suitability scoring algorithm.
+  - Crop-cycle checkpoint roadmap.
+  - Offline sync protocol (idempotency keys, change tracking).
+  - Notification management (read/unread, preferences).
+- **Security Limitations**: None.
+- **Data-Source Limitations**: None.
+- **Integration Status**: `NOT IMPLEMENTED`
+- **Recommended Next Step**: Implement the Crop Planner suitability scoring service and Roadmap checkpoint models in Milestone F.
+
+---
+
+### S14 — EVALUATION AND MLOPS
+- **Module ID**: `S14`
+- **Module Name**: Scientific Evaluation & Quality Assurance
+- **Purpose**: Benchmark validation of hydrological models, hazard state transitions, and AI responses.
+- **Existing File Paths**:
+  - `backend/tests/test_fao56.py`
+  - `backend/tests/test_hazard_state.py`
+  - `backend/tests/test_chat_receptor.py`
+- **Existing Classes & Functions**: Pytest fixtures and assertions.
+- **Existing Database Tables**: None.
+- **Existing API Endpoints**: None.
+- **Upstream Dependencies**: Pytest.
+- **Downstream Consumers**: CI/CD pipelines.
+- **Existing Tests**: 23 tests in `backend/tests/`.
+- **Actual Test Results**: **PASS** (23 passed in 0.58s).
+- **Missing Functionality**: Automated data drift metrics; retrieval precision/recall benchmarks.
+- **Security Limitations**: None.
+- **Data-Source Limitations**: None.
+- **Integration Status**: `PARTIALLY IMPLEMENTED`
+- **Recommended Next Step**: Expand scientific validation suite to include real Indian agro-climatic benchmark scenarios (Vidarbha, Rayalaseema, Punjab).
+
+---
+
+### S15 — GOVERNED DATA PRODUCTS
+- **Module ID**: `S15`
+- **Module Name**: Aggregated & Anonymized Agricultural Data
+- **Purpose**: Privacy-preserving agricultural analytics for research and extension.
+- **Existing File Paths**: None.
+- **Existing Classes & Functions**: None.
+- **Existing Database Tables**: None.
+- **Existing API Endpoints**: None.
+- **Upstream Dependencies**: `M02`, `M03`.
+- **Downstream Consumers**: External research partners.
+- **Existing Tests**: None.
+- **Actual Test Results**: `NOT IMPLEMENTED`.
+- **Missing Functionality**: Aggregation pipelines, minimum k-anonymity group size enforcement, de-identification.
+- **Security Limitations**: Must strictly enforce farmer consent before aggregation.
+- **Data-Source Limitations**: Requires substantial farmer dataset.
+- **Integration Status**: `NOT IMPLEMENTED`
+- **Recommended Next Step**: Implement consent-filtered aggregation queries in later governance milestone.
+
+---
+
+### S16 — PRIVACY AND SECURITY
+- **Module ID**: `S16`
+- **Module Name**: Security Architecture, Access Control & Audit
+- **Purpose**: Cryptographic authentication, role-based access, rate limiting, and audit logging.
+- **Existing File Paths**: `backend/app/core/config.py`
+- **Existing Classes & Functions**: Environment configuration.
+- **Existing Database Tables**: None (`audit_logs` missing).
+- **Existing API Endpoints**: None.
+- **Upstream Dependencies**: `M00`.
+- **Downstream Consumers**: All API routes.
+- **Existing Tests**: None directly testing auth rejection (since auth is currently not enforced).
+- **Actual Test Results**: `PARTIALLY IMPLEMENTED`.
+- **Missing Functionality**: JWT tokens, password hashing, rate limiting, audit log persistence.
+- **Security Limitations**: No authentication currently enforced on APIs beyond matching a string `device_id`.
+- **Data-Source Limitations**: None.
+- **Integration Status**: `PARTIALLY IMPLEMENTED`
+- **Recommended Next Step**: Implement `security.py` with JWT token issuance, password hashing, and dependency-based route protection.
+
