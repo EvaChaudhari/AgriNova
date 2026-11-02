@@ -9,7 +9,7 @@
 
 ## 1. Existing Relational Schema (Physical Tables)
 
-The active database contains **22 relational tables** managed through SQLAlchemy declarative models and Alembic migrations.
+The active database contains **28 relational tables** managed through SQLAlchemy declarative models and Alembic migrations.
 
 ### Table 1: `device_profiles`
 - **Model**: `DeviceProfile` ([`app/models/profile.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/profile.py#L13))
@@ -670,6 +670,119 @@ The active database contains **22 relational tables** managed through SQLAlchemy
 
 ---
 
+### Table 23: `crop_plans`
+- **Model**: `CropPlan` ([`app/models/workflows.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/workflows.py#L27))
+- **Purpose**: Multi-criteria crop suitability rankings and farmer choices.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Crop plan evaluation ID |
+| `plot_id` | `INTEGER` | **No** | **Foreign Key** (`farm_plots.id`), Index | Evaluated farm plot |
+| `season` | `VARCHAR(32)` | **No** | — | Evaluated season (`KHARIF`, `RABI`, `ZAID`) |
+| `target_year` | `INTEGER` | **No** | — | Crop planning calendar year |
+| `rankings_json` | `TEXT` | **No** | — | Serialized candidate crops, scores, and risk tiers |
+| `selected_crop` | `VARCHAR(80)` | Yes | — | Crop chosen by the farmer |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+
+---
+
+### Table 24: `crop_roadmaps`
+- **Model**: `CropRoadmap` ([`app/models/workflows.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/workflows.py#L41))
+- **Purpose**: Crop cycle timeline, duration, current stage, and milestone progress.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Roadmap record ID |
+| `plot_id` | `INTEGER` | **No** | **Foreign Key** (`farm_plots.id`), Index | Associated plot |
+| `crop_cycle_id` | `INTEGER` | Yes | **Foreign Key** (`crop_cycles.id`), Index | Associated active crop cycle |
+| `crop_name` | `VARCHAR(80)` | **No** | — | Crop name |
+| `variety_name` | `VARCHAR(120)` | Yes | — | Cultivar variety |
+| `sowing_date` | `DATE` | **No** | — | Crop sowing date |
+| `expected_harvest_date` | `DATE` | **No** | — | Expected physiological maturity date |
+| `current_stage` | `VARCHAR(64)` | **No** | Default: `'INITIAL'` | Active phenological growth stage |
+| `total_checkpoints` | `INTEGER` | **No** | Default: `6` | Total planned milestone interventions |
+| `completed_checkpoints`| `INTEGER` | **No** | Default: `0` | Number of milestones completed |
+| `is_active` | `BOOLEAN` | **No** | Default: `True` | Active status flag |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Creation timestamp |
+| `updated_at` | `DATETIME` | **No** | OnUpdate: UTC now | Update timestamp |
+
+---
+
+### Table 25: `roadmap_checkpoints`
+- **Model**: `RoadmapCheckpoint` ([`app/models/workflows.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/workflows.py#L67))
+- **Purpose**: Individual stage milestone interventions, target dates, status, and farmer notes.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Checkpoint record ID |
+| `roadmap_id` | `INTEGER` | **No** | **Foreign Key** (`crop_roadmaps.id`), Index | Parent roadmap |
+| `stage_name` | `VARCHAR(64)` | **No** | — | `SOWING`, `BASAL_FERTILIZATION`, `WEEDING`, etc. |
+| `title` | `VARCHAR(160)` | **No** | — | Milestone title |
+| `description` | `TEXT` | **No** | — | Operational agronomic instructions |
+| `target_day_after_sowing` | `INTEGER` | **No** | — | Target DAS |
+| `target_date` | `DATE` | **No** | — | Calendar target execution date |
+| `status` | `VARCHAR(32)` | **No** | Default: `'PENDING'` | `PENDING`, `COMPLETED`, `DEFERRED` |
+| `completed_at` | `DATETIME` | Yes | — | Completion timestamp |
+| `notes` | `TEXT` | Yes | — | Farmer field observations |
+| `actionable_guidance` | `TEXT` | Yes | — | Expert advisory directive |
+
+---
+
+### Table 26: `offline_sync_events`
+- **Model**: `OfflineSyncEvent` ([`app/models/workflows.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/workflows.py#L89))
+- **Purpose**: Idempotent audit record tracking client-side queued mutations.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Sync event ID |
+| `idempotency_key` | `VARCHAR(128)` | **No** | **Unique**, Index | Client-generated UUID idempotency key |
+| `device_id` | `VARCHAR(128)` | **No** | Index | Originating hardware device |
+| `action_type` | `VARCHAR(64)` | **No** | — | `CHECKPOINT_COMPLETE`, `LOG_IRRIGATION`, etc. |
+| `payload_json` | `TEXT` | **No** | — | Action payload payload |
+| `status` | `VARCHAR(32)` | **No** | Default: `'APPLIED'` | `APPLIED`, `DUPLICATE_SKIPPED`, `ERROR` |
+| `server_timestamp` | `DATETIME` | **No** | Default: UTC now | Server processing timestamp |
+| `client_timestamp` | `DATETIME` | **No** | — | Client generation timestamp |
+
+---
+
+### Table 27: `farmer_notifications`
+- **Model**: `FarmerNotification` ([`app/models/workflows.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/workflows.py#L106))
+- **Purpose**: Actionable hazard, irrigation, and roadmap alert notifications with read receipts.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Notification ID |
+| `device_id` | `VARCHAR(128)` | **No** | Index | Recipient device UUID |
+| `plot_id` | `INTEGER` | Yes | **Foreign Key** (`farm_plots.id`), Index | Subject farm parcel |
+| `notification_type` | `VARCHAR(64)` | **No** | — | `WEATHER_HAZARD`, `IRRIGATION_DUE`, `ROADMAP_CHECKPOINT` |
+| `priority` | `VARCHAR(32)` | **No** | Default: `'ROUTINE'` | `URGENT`, `HIGH`, `ROUTINE` |
+| `title` | `VARCHAR(200)` | **No** | — | Localized headline |
+| `body` | `TEXT` | **No** | — | Detailed advisory instructions |
+| `language` | `VARCHAR(10)` | **No** | Default: `'hi'` | Language code (`hi`, `mr`, `te`, `en`) |
+| `channel` | `VARCHAR(32)` | **No** | Default: `'IN_APP'` | `IN_APP`, `SMS`, `WHATSAPP` |
+| `is_read` | `BOOLEAN` | **No** | Default: `False` | Acknowledgment status |
+| `action_url` | `VARCHAR(255)` | Yes | — | Optional deep link URL |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Generation timestamp |
+| `read_at` | `DATETIME` | Yes | — | Acknowledgment timestamp |
+
+---
+
+### Table 28: `approved_agronomic_guides`
+- **Model**: `ApprovedAgronomicGuide` ([`app/models/workflows.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/models/workflows.py#L129))
+- **Purpose**: Vetted ICAR / SAU Package of Practices knowledge cards for RAG grounding.
+
+| Column Name | Data Type | Nullable | Key / Constraint | Description |
+|---|---|---|---|---|
+| `id` | `INTEGER` | **No** | **Primary Key**, Auto-inc | Guidance card ID |
+| `crop_name` | `VARCHAR(80)` | **No** | Index | Target crop name |
+| `category` | `VARCHAR(64)` | **No** | — | `NUTRIENT_MANAGEMENT`, `IPM_DISEASE_PEST`, etc. |
+| `stage_name` | `VARCHAR(64)` | Yes | — | Applicable phenological growth stage |
+| `icar_recommendation` | `TEXT` | **No** | — | Certified agronomic recommendation text |
+| `citation_source` | `VARCHAR(255)` | **No** | — | Authoritative ICAR / SAU publication citation |
+| `created_at` | `DATETIME` | **No** | Default: UTC now | Ingestion timestamp |
+
+---
+
 ## 2. Dialect Portability: `PostGISGeometry` TypeDecorator
 
 To enable seamless testing without requiring local PostGIS or SpatiaLite C-libraries, [`app/core/database.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/core/database.py#L34) implements a custom TypeDecorator:
@@ -701,6 +814,6 @@ The target enterprise architecture mandates 22 additional logical entities:
 | **Environmental Observations** | *Implemented in Milestone C* (`WeatherObservation`, `WeatherForecast`, `SatelliteObservation`, `GroundwaterTimeSeries`, `TerrainTopography`) | Storing continuous time-series telemetry and spatial terrain metrics. |
 | **Crop Knowledge** | *Implemented in Milestone D* (`Crop`, `CropVariety`, `CropGrowthStage`, `CropNutrientBenchmark`, `CropPestProfile`) | Database-backed versioned agronomic knowledge, varieties, FAO-56 stages, STCR equations, and IPM pest profiles. |
 | **Intelligence & Evaluation** | `WaterBalanceResult`, `CropHealthResult`, `YieldEstimate`, `HazardEvent` | Persisting calculation results for verification, history, and scientific audit. |
-| **Farmer Workflows** | `CropPlan`, `RoadmapCheckpoint`, `Notification`, `SyncOperation` | Enabling crop planner, milestone trackers, push notifications, and offline sync. |
+| **Farmer Workflows** | *Implemented in Milestone E* (`CropPlan`, `CropRoadmap`, `RoadmapCheckpoint`, `OfflineSyncEvent`, `FarmerNotification`, `ApprovedAgronomicGuide`) | Crop suitability planner, stage milestone calendars, offline sync reconciliation, localized farmer notifications, and ICAR RAG cards. |
 | **Data Platform Governance** | `DatasetSource`, `IngestionRun` | Tracking provenance, data freshness, and ingestion quality metrics. |
 

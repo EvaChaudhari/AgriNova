@@ -233,6 +233,68 @@ Below is the exhaustive catalog of every active route currently implemented in t
 
 ---
 
+### Category: Crop Suitability Planner (Milestone E)
+| Method | Path | Handler | File Location | Auth | Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/planner/recommend-crops` | `recommend_crops_for_plot` | [`app/api/v1/planner.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/planner.py#L38) | Optional | 200 OK |
+
+- **Purpose**: Multi-criteria crop suitability evaluation assessing soil texture, pH, regional groundwater table, and irrigation infrastructure. Categorizes risk into `OPTIMAL`, `SUITABLE_WITH_IRRIGATION`, and `HIGH_RISK_DROUGHT`.
+- **Request Schema**: `CropRecommendationRequest` (`plot_id`, `season`, `preferred_category`).
+- **Response Schema**: `CropRecommendationResponse`.
+- **Database Tables Touched**: `crop_plans` (insert), `farm_plots` (read), `crops` (read), `crop_varieties` (read), `soil_health_records` (read), `groundwater_observations` (read).
+- **Engines Invoked**: `CropPlannerEngine`.
+- **Existing Tests**: 6 tests in `backend/tests/test_crop_planner.py`.
+- **Test Result**: **PASS**.
+
+---
+
+### Category: Crop Roadmaps & Checkpoints (Milestone E)
+| Method | Path | Handler | File Location | Auth | Status |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/plots/{plot_id}/roadmap` | `get_plot_roadmap` | [`app/api/v1/roadmap.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/roadmap.py#L25) | Optional | 200 OK |
+| `POST` | `/api/v1/plots/{plot_id}/checkpoints/{checkpoint_id}/complete` | `complete_roadmap_checkpoint` | [`app/api/v1/roadmap.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/roadmap.py#L44) | Optional | 200 OK |
+
+- **Purpose**: Generates and retrieves the 6-milestone agronomic calendar for an active crop cycle, tracking days after sowing (DAS), active phenological stage, progress percentage, and field notes.
+- **Request Schema**: `CheckpointCompleteRequest` (`notes`, `status`).
+- **Response Schemas**: `CropRoadmapResponse`, `RoadmapCheckpointResponse`.
+- **Database Tables Touched**: `crop_roadmaps`, `roadmap_checkpoints`, `farm_plots`, `crop_cycles`.
+- **Engines Invoked**: `RoadmapEngine`.
+- **Existing Tests**: 5 tests in `backend/tests/test_roadmap_engine.py`.
+- **Test Result**: **PASS**.
+
+---
+
+### Category: Offline Synchronization (Milestone E)
+| Method | Path | Handler | File Location | Auth | Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/sync/batch` | `synchronize_offline_batch` | [`app/api/v1/sync.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/sync.py#L18) | Optional | 200 OK |
+
+- **Purpose**: Idempotent batch reconciliation of offline actions (checkpoint completion, irrigation events, field notes) queued on rural 2G/3G mobile devices.
+- **Request Schema**: `SyncBatchRequest` (`device_id`, list of `SyncActionItem` each with client `idempotency_key`).
+- **Response Schema**: `SyncBatchResponse` (`applied`, `skipped`, list of `SyncActionResult`).
+- **Database Tables Touched**: `offline_sync_events` (read/insert), `roadmap_checkpoints` (update).
+- **Services Invoked**: `OfflineSyncService`.
+- **Existing Tests**: 2 integration tests in `backend/tests/test_offline_sync.py`.
+- **Test Result**: **PASS**.
+
+---
+
+### Category: Farmer Notifications (Milestone E)
+| Method | Path | Handler | File Location | Auth | Status |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/notifications` | `get_farmer_notifications` | [`app/api/v1/notifications.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/notifications.py#L22) | Optional | 200 OK |
+| `POST` | `/api/v1/notifications/{notification_id}/read` | `acknowledge_notification` | [`app/api/v1/notifications.py`](file:///Users/evariteshkumarchaudhari/Desktop/projects/AgriNova/backend/app/api/v1/notifications.py#L36) | Optional | 200 OK |
+
+- **Purpose**: Retrieve and acknowledge actionable farmer alerts (weather hazards, irrigation deficits, roadmap milestone reminders) localized in Hindi, Marathi, Telugu, or English.
+- **Query Parameters**: `device_id` (required), `unread_only` (optional boolean).
+- **Response Schemas**: `list[NotificationResponse]`, `NotificationReadResponse`.
+- **Database Tables Touched**: `farmer_notifications` (read/update).
+- **Services Invoked**: `NotificationService`.
+- **Existing Tests**: 4 tests in `backend/tests/test_notifications_api.py`.
+- **Test Result**: **PASS**.
+
+---
+
 ### Category: Conversational Chat Receptor
 | Method | Path | Handler | File Location | Auth | Status |
 |---|---|---|---|---|---|

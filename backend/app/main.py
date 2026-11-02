@@ -27,9 +27,13 @@ from app.api.v1 import (
     consent,
     crop_knowledge,
     farms,
+    notifications,
     observations,
+    planner,
     plots,
+    roadmap,
     soil,
+    sync,
 )
 from app.core.config import settings
 from app.core.database import Base, engine, get_db
@@ -56,16 +60,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Base.metadata.create_all(bind=engine)
     logger.info("Database schema initialized successfully.")
 
-    # Seed baseline agronomic crop knowledge idempotently
+    # Seed baseline agronomic crop knowledge and ICAR guidance idempotently
     try:
         from app.core.database import SessionLocal
         from app.services.crop_seed_service import seed_crops_if_empty
+        from app.services.retrieval_service import AgronomicRetrievalService
 
         with SessionLocal() as db:
-            count = seed_crops_if_empty(db)
-            logger.info("Agronomic knowledge baseline loaded: %d crops active.", count)
+            crop_count = seed_crops_if_empty(db)
+            guide_count = AgronomicRetrievalService.seed_guides_if_empty(db)
+            logger.info("Agronomic knowledge baseline loaded: %d crops, %d ICAR guides active.", crop_count, guide_count)
     except Exception as exc:
-        logger.warning("Could not auto-seed crop knowledge on startup: %s", str(exc))
+        logger.warning("Could not auto-seed agronomic knowledge on startup: %s", str(exc))
 
     yield
     logger.info("Shutting down AgriNova Backend Engine.")
@@ -270,6 +276,10 @@ app.include_router(plots.router, prefix=settings.API_V1_STR)
 app.include_router(observations.router, prefix=settings.API_V1_STR)
 app.include_router(crop_knowledge.router, prefix=settings.API_V1_STR)
 app.include_router(soil.router, prefix=settings.API_V1_STR)
+app.include_router(planner.router, prefix=settings.API_V1_STR)
+app.include_router(roadmap.router, prefix=settings.API_V1_STR)
+app.include_router(sync.router, prefix=settings.API_V1_STR)
+app.include_router(notifications.router, prefix=settings.API_V1_STR)
 app.include_router(chat_receptor.router, prefix=settings.API_V1_STR)
 
 

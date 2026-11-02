@@ -20,6 +20,14 @@ from app.models.crop_knowledge import (
     CropNutrientBenchmark,
     CropPestProfile,
 )
+from app.models.workflows import (
+    ApprovedAgronomicGuide,
+    CropPlan,
+    CropRoadmap,
+    FarmerNotification,
+    OfflineSyncEvent,
+    RoadmapCheckpoint,
+)
 
 __all__ = [
     "DeviceProfile",
@@ -44,4 +52,10 @@ __all__ = [
     "CropGrowthStage",
     "CropNutrientBenchmark",
     "CropPestProfile",
+    "CropPlan",
+    "CropRoadmap",
+    "RoadmapCheckpoint",
+    "OfflineSyncEvent",
+    "FarmerNotification",
+    "ApprovedAgronomicGuide",
 ]
