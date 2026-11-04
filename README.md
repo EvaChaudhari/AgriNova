@@ -127,15 +127,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 Interactive OpenAPI documentation will be accessible at: `http://localhost:8000/docs`.
 
-### 4. Launch the Modern Web Frontend
-The repository comes equipped with a modern, voice-first digital agriculture frontend:
-```bash
-# Launch via zero-dependency runner:
-python run_frontend.py
-```
-Open your browser to: `http://localhost:3000` (or visit `http://localhost:8000/app` when running the backend).
-
-### 5. Execute the Test Suite
+### 4. Execute the Test Suite
 ```bash
 PYTHONPATH=backend pytest -v
 ```
