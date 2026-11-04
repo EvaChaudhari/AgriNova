@@ -5,6 +5,7 @@ request correlation tracking, centralized RFC 7807 error handling, and health pr
 """
 
 import logging
+import os
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -14,7 +15,8 @@ from typing import Any, AsyncGenerator
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -377,8 +379,10 @@ def readiness_check(
 
 
 @app.get("/", tags=["Health"])
-def root_status() -> dict[str, str]:
-    """Root metadata status check."""
+def root_status(request: Request) -> Any:
+    """Root metadata status check or web app redirection."""
+    if "text/html" in request.headers.get("accept", ""):
+        return RedirectResponse(url="/app/")
     return {
         "status": "healthy",
         "service": settings.PROJECT_NAME,
@@ -391,3 +395,10 @@ def root_status() -> dict[str, str]:
 def healthz() -> dict[str, str]:
     """Legacy Kubernetes liveness and readiness probe for backward compatibility."""
     return {"status": "ok"}
+
+
+# Mount static frontend application
+frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend"))
+if os.path.exists(frontend_dir):
+    app.mount("/app", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+

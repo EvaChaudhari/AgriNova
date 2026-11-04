@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Krishi Mitra — Deterministic Agronomic & Voice AI Engine</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              200: '#a7f3d0',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Leaflet GIS Map CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Chart.js for FAO-56 Depletion Curves -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- TOP HEADER / BRAND BAR -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Brand Title & Icon -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white text-xl shadow-md">
+            🌾
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg font-bold text-slate-900 tracking-tight" data-i18n="appName">Krishi Mitra</h1>
+              <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">v1.0 ICAR Grounded</span>
+            </div>
+            <p class="text-xs text-slate-500 hidden sm:block" data-i18n="appSubtitle">
+              Deterministic Agronomic & Voice AI Engine
+            </p>
+          </div>
+        </div>
+
+        <!-- Right Controls: Backend Badge, Language Selector, Farmer Pill -->
+        <div class="flex items-center gap-2.5 sm:gap-4">
+          <!-- Live Backend / Demo Mode Badge -->
+          <div id="connection-mode-badge" class="flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-200 rounded-full cursor-pointer hover:bg-amber-100 transition" title="Click to toggle between Live Backend and Demo Mode">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span class="text-xs font-semibold text-amber-800" data-i18n="backendOffline">Demo Baseline Mode</span>
+          </div>
+
+          <!-- Language Selector -->
+          <div class="relative">
+            <select id="language-selector" class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs rounded-lg px-2.5 py-1.5 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="hi">🇮🇳 हिंदी (Hindi)</option>
+              <option value="en">🌐 English</option>
+              <option value="mr">🇮🇳 मराठी (Marathi)</option>
+              <option value="te">🇮🇳 తెలుగు (Telugu)</option>
+            </select>
+          </div>
+
+          <!-- Farmer Profile Modal Trigger -->
+          <button id="open-profile-modal-btn" class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold transition">
+            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            <span class="hidden md:inline" data-i18n="navProfile">Farmer Profile</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PRIMARY TAB NAVIGATION -->
+    <div class="bg-slate-100 border-t border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav class="flex space-x-2 py-2 overflow-x-auto text-xs font-medium">
+          <button data-tab-target="dashboard" class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-700 text-white shadow-sm transition">
+            <span>📊</span>
+            <span data-i18n="navDashboard">Dashboard</span>
+          </button>
+
+          <button data-tab-target="chat" class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-200 transition">
+            <span>💬</span>
+            <span data-i18n="navChat">Agri AI Chat</span>
+          </button>
+
+          <button data-tab-target="map" class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-200 transition">
+            <span>🗺️</span>
+            <span data-i18n="navMap">Plot & Field Map</span>
+          </button>
+
+          <button data-tab-target="profile" class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-200 transition">
+            <span>👤</span>
+            <span data-i18n="navProfile">Farmer Profile</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ==================== TAB 1: DASHBOARD ==================== -->
+    <div id="tab-dashboard" class="tab-panel space-y-6">
+
+      <!-- FARMER SUMMARY & HAZARD STATE TEST TOGGLE -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-2xl font-bold">
+            👨‍🌾
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 id="dashboard-farmer-name" class="text-base font-bold text-slate-900">Rameshwar Patil</h2>
+              <span class="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-mono">ID: <span id="device-id-display">TEST-HARDWARE-UUID-001</span></span>
+            </div>
+            <p id="dashboard-crop-summary" class="text-xs text-emerald-700 font-medium mt-0.5">
+              Cotton (Bt-Cotton) • FLOWERING • 72 Days After Sowing
+            </p>
+          </div>
+        </div>
+
+        <!-- Simulation Tool for evaluating hazard state machine -->
+        <div class="flex items-center gap-2">
+          <button id="toggle-hazard-demo-btn" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-300 transition flex items-center gap-1.5" title="Cycle through Hazard states: Normal -> Storm Flood -> El Nino">
+            <span>⚡</span>
+            <span>Simulate Hazard State</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- HAZARD BANNER (DYNAMIC) -->
+      <div id="hazard-state-banner">
+        <!-- Rendered by app.js -->
+      </div>
+
+      <!-- TOP METRICS GRID -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <!-- 1. FAO-56 HYDROLOGY & IRRIGATION ENGINE CARD -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs agri-card flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">💧</span>
+                <h3 class="font-bold text-sm text-slate-800" data-i18n="waterBalanceTitle">FAO-56 Water Balance</h3>
+              </div>
+              <span id="hydro-trigger-badge" class="px-2.5 py-1 bg-emerald-600 text-white font-bold text-xs rounded-full shadow-xs">
+                HOLD
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 mb-4" data-i18n="waterBalanceDesc">
+              Penman-Monteith Evapotranspiration Model
+            </p>
+
+            <!-- Recommended Irrigation Depth -->
+            <div class="p-3 bg-slate-50 rounded-xl mb-4 border border-slate-100">
+              <div class="text-[11px] text-slate-500 uppercase tracking-wider font-semibold" data-i18n="recDepth">Recommended Depth</div>
+              <div class="text-2xl font-black text-slate-900 mt-0.5" id="hydro-rec-depth">0.0 mm</div>
+              <div class="text-[11px] text-emerald-700 font-medium mt-1" id="hydro-details">
+                Root zone moisture is within safe buffering capacity.
+              </div>
+            </div>
+
+            <!-- Depletion vs RAW Meter -->
+            <div class="space-y-1.5 mb-4">
+              <div class="flex justify-between text-xs font-medium">
+                <span class="text-slate-600" data-i18n="depletionLevel">Root Depletion</span>
+                <span class="text-slate-900 font-bold"><span id="hydro-depletion">42.5 mm</span> / <span id="hydro-raw" class="text-slate-500">78.0 mm</span></span>
+              </div>
+              <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                <div id="hydro-progress-bar" class="h-full bg-emerald-500 rounded-full" style="width: 54%"></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs border-t border-slate-100 pt-3">
+              <div><span class="text-slate-400">Ref ET (ET₀):</span> <b id="hydro-et0" class="text-slate-700">4.85 mm/d</b></div>
+              <div><span class="text-slate-400">Crop ET (ETc):</span> <b id="hydro-etc" class="text-slate-700">5.58 mm/d</b></div>
+            </div>
+          </div>
+
+          <!-- Quick Action to Chat -->
+          <button onclick="window.app.switchTab('chat')" class="mt-4 w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+            <span>Ask Agronomist About Watering</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+
+        <!-- 2. SATELLITE STAC & PHENOLOGY (SENTINEL-2) -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs agri-card flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">🛰️</span>
+                <h3 class="font-bold text-sm text-slate-800" data-i18n="satelliteHealth">Sentinel-2 STAC Indices</h3>
+              </div>
+              <span class="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-semibold rounded-md border border-blue-200">
+                10m Resolution
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">
+              Chlorophyll Biomass & Moisture Stress
+            </p>
+
+            <!-- NDVI Bar -->
+            <div class="mb-4">
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-600 font-medium" data-i18n="ndviLabel">Canopy Vigour (NDVI)</span>
+                <span class="text-emerald-700 font-bold" id="satellite-ndvi-val">0.68</span>
+              </div>
+              <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                <div id="satellite-ndvi-bar" class="h-full bg-gradient-to-r from-amber-400 to-emerald-600 rounded-full" style="width: 68%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                <span>Sparse (0.0)</span>
+                <span>Dense Green (1.0)</span>
+              </div>
+            </div>
+
+            <!-- NDWI Bar -->
+            <div class="mb-4">
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-600 font-medium" data-i18n="ndwiLabel">Canopy Moisture (NDWI)</span>
+                <span class="text-blue-700 font-bold" id="satellite-ndwi-val">0.14</span>
+              </div>
+              <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                <div id="satellite-ndwi-bar" class="h-full bg-gradient-to-r from-orange-400 to-blue-500 rounded-full" style="width: 57%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                <span>Water Stressed (-1.0)</span>
+                <span>High Moisture (+1.0)</span>
+              </div>
+            </div>
+
+            <div class="p-2.5 bg-slate-50 rounded-xl text-xs text-slate-600 border border-slate-100" id="satellite-details">
+              Healthy vegetative canopy with robust chlorophyll absorption and adequate leaf water content.
+            </div>
+          </div>
+
+          <button onclick="window.app.switchTab('map')" class="mt-4 w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+            <span>View Field Boundary Satellite Layer</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+
+        <!-- 3. LOCAL WEATHER & TELEMETRY -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs agri-card flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">🌤️</span>
+                <h3 class="font-bold text-sm text-slate-800" data-i18n="weatherForecast">Local Agro-Meteorology</h3>
+              </div>
+              <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-md border border-emerald-200">
+                IMD Baseline
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 mb-4" id="weather-desc-val">
+              Clear Sky with Mild Sunshine
+            </p>
+
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div class="text-[10px] text-slate-400 uppercase font-semibold">Mean Temp</div>
+                <div class="text-xl font-bold text-slate-800 mt-0.5" id="weather-temp-val">28.1°C</div>
+              </div>
+              <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div class="text-[10px] text-slate-400 uppercase font-semibold">24h Rainfall</div>
+                <div class="text-xl font-bold text-slate-800 mt-0.5" id="weather-rain-val">0.0 mm</div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div class="text-[10px] text-slate-400 uppercase font-semibold">Relative Humidity</div>
+                <div class="text-base font-bold text-slate-800 mt-0.5" id="weather-rh-val">68%</div>
+              </div>
+              <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div class="text-[10px] text-slate-400 uppercase font-semibold" data-i18n="groundwater">Groundwater</div>
+                <div class="text-base font-bold text-slate-800 mt-0.5" id="gw-depth-val">11.2 mbgl</div>
+              </div>
+            </div>
+
+            <!-- Soil Health Indicators -->
+            <div class="border-t border-slate-100 pt-3">
+              <div class="flex items-center justify-between text-xs mb-2">
+                <span class="font-semibold text-slate-700" data-i18n="soilNutrients">Soil Nutrients (Vertisol)</span>
+                <span id="soil-ph-val" class="text-emerald-700 font-bold">pH 7.8</span>
+              </div>
+              <div class="grid grid-cols-3 gap-1.5 text-center text-[11px]">
+                <div class="bg-emerald-50 rounded p-1 border border-emerald-100">
+                  <span class="text-slate-500">N:</span> <b id="soil-n-val">220 kg</b>
+                </div>
+                <div class="bg-emerald-50 rounded p-1 border border-emerald-100">
+                  <span class="text-slate-500">P:</span> <b id="soil-p-val">18.5 kg</b>
+                </div>
+                <div class="bg-emerald-50 rounded p-1 border border-emerald-100">
+                  <span class="text-slate-500">K:</span> <b id="soil-k-val">310 kg</b>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button id="btn-sample-leaf" class="mt-4 w-full py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+            <span>🍃 Test Leaf Vision Diagnostic</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- MIDDLE SECTION: DEPLETION GRAPH & QUICK ADVISORIES -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Chart.js 5-day Root Zone Depletion Curve -->
+        <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-bold text-sm text-slate-800">Root Zone Water Balance Trajectory (FAO-56)</h3>
+              <p class="text-xs text-slate-500">Daily Depletion ($D_t$) tracking vs Readily Available Water ($RAW$)</p>
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg">Rolling 5-Day</span>
+          </div>
+          <div class="h-60 w-full">
+            <canvas id="depletionChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Quick Farmer Prompts Card -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div>
+            <h3 class="font-bold text-sm text-slate-800 mb-1" data-i18n="quickPromptsTitle">Quick Farmer Advisories</h3>
+            <p class="text-xs text-slate-500 mb-4">Tap to ask with current live agro-climatic context</p>
+            <div id="quick-prompts-container" class="space-y-2">
+              <!-- Rendered dynamically by app.js based on language -->
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-slate-100">
+            <button onclick="window.app.switchTab('chat')" class="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-2">
+              <span>🎙️ Open Full Voice AI Console</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 2: AGRI AI CHAT ==================== -->
+    <div id="tab-chat" class="tab-panel hidden space-y-4">
+      
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col h-[75vh]">
+        
+        <!-- Chat Header Bar -->
+        <div class="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center text-lg font-bold">
+              👨‍🔬
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900" data-i18n="chatHeader">Senior ICAR Agronomist Console</h3>
+              <p class="text-[11px] text-slate-500">Voice-First Multimodal Receptor • CIB&RC IPM Compliant</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full font-medium">
+              Zero-Hallucination Safe
+            </span>
+          </div>
+        </div>
+
+        <!-- Messages Viewport -->
+        <div id="chat-messages" class="flex-1 p-5 overflow-y-auto space-y-4 bg-slate-50/50">
+          <!-- Dynamically populated by chat.js -->
+        </div>
+
+        <!-- Leaf Photo Thumbnail Preview Bar -->
+        <div id="image-preview-bar" class="px-5 py-2 bg-slate-100 border-t border-slate-200 hidden">
+          <!-- Dynamically shown when leaf image selected -->
+        </div>
+
+        <!-- Input Bar with Voice & Leaf Upload -->
+        <div class="p-3 sm:p-4 bg-white border-t border-slate-200">
+          <div class="flex items-center gap-2 sm:gap-3">
+            
+            <!-- Voice Record Mic Button -->
+            <button id="chat-mic-btn" type="button" class="p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition flex items-center justify-center shadow-xs" title="Record Voice Audio">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+            </button>
+
+            <!-- Leaf Pathology Image Upload -->
+            <label class="p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer transition flex items-center justify-center shadow-xs" title="Upload Affected Leaf Photo">
+              <input type="file" id="chat-leaf-input" accept="image/*" class="hidden" />
+              <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            </label>
+
+            <!-- Text Input -->
+            <div class="flex-1 relative">
+              <input
+                type="text"
+                id="chat-input"
+                class="w-full bg-slate-100 focus:bg-white text-slate-800 text-sm rounded-xl px-4 py-3 border border-transparent focus:border-emerald-500 focus:outline-none transition shadow-inner"
+                placeholder="Ask in your voice or type your farming question..."
+                data-i18n-placeholder="chatPlaceholder"
+              />
+            </div>
+
+            <!-- Send Button -->
+            <button id="chat-send-btn" type="button" class="p-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition flex items-center justify-center shadow-md">
+              <svg class="w-5 h-5 transform rotate-90" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
+            </button>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 3: PLOT & FIELD MAP ==================== -->
+    <div id="tab-map" class="tab-panel hidden space-y-6">
+      
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <h3 class="font-bold text-base text-slate-900" data-i18n="navMap">Farm Plot & Field GIS Map</h3>
+            <p class="text-xs text-slate-500">PostGIS Polygon Boundary, Centroid & Area (Hectares) Calculation</p>
+          </div>
+
+          <!-- Plot Selector -->
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-500 font-medium">Select Plot:</span>
+            <select id="plot-map-selector" class="bg-slate-100 border border-slate-300 text-xs rounded-lg px-3 py-1.5 font-medium focus:ring-2 focus:ring-emerald-500">
+              <option value="1">North Cotton Field (Warangal - 1.15 ha)</option>
+              <option value="2">South Paddy Field (Red Soil - 0.85 ha)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Interactive Leaflet Map Container -->
+        <div id="farm-map" class="shadow-inner border border-slate-200"></div>
+
+        <!-- Plot Metadata Details -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5 pt-4 border-t border-slate-100 text-xs">
+          <div class="p-3 bg-slate-50 rounded-xl">
+            <span class="text-slate-400">Total Surface Area:</span>
+            <div class="font-bold text-slate-800 text-sm mt-0.5">1.15 Hectares</div>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-xl">
+            <span class="text-slate-400">Soil Texture:</span>
+            <div class="font-bold text-slate-800 text-sm mt-0.5">Vertisol (Black Cotton)</div>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-xl">
+            <span class="text-slate-400">Slope & Elevation:</span>
+            <div class="font-bold text-slate-800 text-sm mt-0.5">1.5% • 250m DEM</div>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-xl">
+            <span class="text-slate-400">Survey / Khasra #:</span>
+            <div class="font-bold text-slate-800 text-sm mt-0.5">45/2 • K-102</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 4: FARMER PROFILE ==================== -->
+    <div id="tab-profile" class="tab-panel hidden space-y-6">
+      
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs max-w-3xl mx-auto">
+        <div class="border-b border-slate-200 pb-4 mb-6">
+          <h3 class="font-bold text-lg text-slate-900" data-i18n="navProfile">Farmer Device Profile & Onboarding</h3>
+          <p class="text-xs text-slate-500">Single-tenant hardware binding (device_id UUID)</p>
+        </div>
+
+        <form id="profile-tab-form" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Hardware Device ID (UUID)</label>
+              <input type="text" id="tab-input-device-id" value="TEST-HARDWARE-UUID-001" class="w-full bg-slate-100 text-slate-800 text-sm rounded-xl px-3 py-2 border border-slate-300 font-mono" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1" data-i18n="farmerName">Farmer Name</label>
+              <input type="text" id="tab-input-farmer-name" value="Rameshwar Patil" class="w-full bg-white text-slate-800 text-sm rounded-xl px-3 py-2 border border-slate-300 focus:ring-2 focus:ring-emerald-500" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1" data-i18n="phone">Phone Number</label>
+              <input type="text" id="tab-input-farmer-phone" value="+91 98765 43210" class="w-full bg-white text-slate-800 text-sm rounded-xl px-3 py-2 border border-slate-300" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1" data-i18n="kisanId">PM-Kisan ID</label>
+              <input type="text" id="tab-input-farmer-kisan" value="PMK-123456" class="w-full bg-white text-slate-800 text-sm rounded-xl px-3 py-2 border border-slate-300" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1" data-i18n="preferredLang">Preferred Language</label>
+              <select id="tab-input-farmer-lang" class="w-full bg-white text-slate-800 text-sm rounded-xl px-3 py-2 border border-slate-300">
+                <option value="hi">हिंदी (Hindi)</option>
+                <option value="en">English</option>
+                <option value="mr">मराठी (Marathi)</option>
+                <option value="te">తెలుగు (Telugu)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-100 flex justify-end">
+            <button type="button" onclick="window.app.showToast('Profile updated locally and saved to backend', 'success')" class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition shadow-sm" data-i18n="saveProfile">
+              Save Profile
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ONBOARDING / PROFILE MODAL -->
+  <div id="profile-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+        <h3 class="font-bold text-slate-900 text-base">🌾 Farmer Profile Setup</h3>
+        <button id="close-profile-modal-btn" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <form id="onboard-form" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Hardware Device ID</label>
+          <input type="text" id="input-device-id" required class="w-full bg-slate-100 text-slate-800 text-xs rounded-lg px-3 py-2 border border-slate-300 font-mono" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1" data-i18n="farmerName">Farmer Name</label>
+          <input type="text" id="input-farmer-name" required class="w-full bg-white text-slate-800 text-xs rounded-lg px-3 py-2 border border-slate-300" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1" data-i18n="phone">Phone Number</label>
+            <input type="text" id="input-farmer-phone" class="w-full bg-white text-slate-800 text-xs rounded-lg px-3 py-2 border border-slate-300" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1" data-i18n="kisanId">PM-Kisan ID</label>
+            <input type="text" id="input-farmer-kisan" class="w-full bg-white text-slate-800 text-xs rounded-lg px-3 py-2 border border-slate-300" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1" data-i18n="preferredLang">Preferred Language</label>
+          <select id="input-farmer-lang" class="w-full bg-white text-slate-800 text-xs rounded-lg px-3 py-2 border border-slate-300">
+            <option value="hi">हिंदी (Hindi)</option>
+            <option value="en">English</option>
+            <option value="mr">मराठी (Marathi)</option>
+            <option value="te">తెలుగు (Telugu)</option>
+          </select>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition shadow-sm" data-i18n="saveProfile">
+            Save Profile
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FLOATING TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- APPLICATION SCRIPTS (Ordered) -->
+  <script src="js/config.js"></script>
+  <script src="js/mockData.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
